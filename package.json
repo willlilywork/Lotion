@@ -19,7 +19,8 @@
     "start": "pnpm build && electron .",
     "e2e": "playwright test",
     "check-ids": "node scripts/check-ids.ts",
-    "package": "pnpm build && electron-builder --publish never"
+    "package": "pnpm build && electron-builder --publish never",
+    "perf": "node scripts/perf.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
