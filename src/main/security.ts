@@ -25,19 +25,11 @@ export function isAppUrl(target: string, appUrl: string): boolean {
   }
 }
 
-/** Lock down sessions and every web contents the app creates. Call before any window opens. */
+/**
+ * Lock down every web contents the app creates. Call at startup, before `ready`.
+ * Session hardening needs the app to be ready, so it lives in `hardenDefaultSession`.
+ */
 export function installSecurity(appUrl: () => string): void {
-  const ses = session.defaultSession;
-  ses.setPermissionRequestHandler((_wc, _perm, callback) => {
-    callback(false);
-  });
-  ses.setPermissionCheckHandler(() => false);
-  ses.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [CSP] },
-    });
-  });
-
   app.on('web-contents-created', (_event, contents: WebContents) => {
     contents.on('will-navigate', (event, url) => {
       if (!isAppUrl(url, appUrl())) event.preventDefault();
@@ -52,6 +44,20 @@ export function installSecurity(appUrl: () => string): void {
       // External links open in the system browser; nothing opens inside the app.
       if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
       return { action: 'deny' };
+    });
+  });
+}
+
+/** Deny every permission and attach the CSP header. Call after `app.whenReady()`, before any window. */
+export function hardenDefaultSession(): void {
+  const ses = session.defaultSession;
+  ses.setPermissionRequestHandler((_wc, _perm, callback) => {
+    callback(false);
+  });
+  ses.setPermissionCheckHandler(() => false);
+  ses.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [CSP] },
     });
   });
 }

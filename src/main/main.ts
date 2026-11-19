@@ -3,7 +3,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { APP_NAME } from '../shared/app-info.js';
 import { IPC_APP_INFO, type AppInfo } from '../shared/ipc.js';
-import { installSecurity } from './security.js';
+import { hardenDefaultSession, installSecurity } from './security.js';
 
 const rendererFile = path.join(__dirname, '..', 'renderer', 'index.html');
 const rendererUrl = pathToFileURL(rendererFile).toString();
@@ -29,7 +29,10 @@ if (!app.requestSingleInstanceLock()) {
     return { name: APP_NAME, version: app.getVersion(), platform: process.platform };
   });
 
-  void app.whenReady().then(createWindow);
+  void app.whenReady().then(() => {
+    hardenDefaultSession();
+    createWindow();
+  });
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();

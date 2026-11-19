@@ -37,16 +37,24 @@ test('launch: renderer has no Node access', async () => {
   expect(globals).toEqual({ require: 'undefined', process: 'undefined', bridgeKeys: ['appInfo'] });
 });
 
-test('launch: CSP blocks eval', async () => {
-  const blocked = await page.evaluate(() => {
-    try {
-      (0, eval)('1');
-      return false;
-    } catch {
-      return true;
-    }
+test('launch: CSP blocks inline script and string-eval', async () => {
+  // DevTools evaluation bypasses CSP, so the probe goes through the page itself.
+  const result = await page.evaluate(async () => {
+    const w = window as unknown as Record<string, unknown>;
+    const violations: string[] = [];
+    document.addEventListener('securitypolicyviolation', (e) =>
+      violations.push(e.violatedDirective),
+    );
+    const s = document.createElement('script');
+    s.textContent = 'window.__inlineRan = true';
+    document.body.append(s);
+    setTimeout('window.__timeoutRan = true' as unknown as () => void, 0);
+    await new Promise((r) => setTimeout(r, 200));
+    return { inline: w['__inlineRan'] === true, timeout: w['__timeoutRan'] === true, violations };
   });
-  expect(blocked).toBe(true);
+  expect(result.inline).toBe(false);
+  expect(result.timeout).toBe(false);
+  expect(result.violations.length).toBeGreaterThanOrEqual(2);
 });
 
 test('launch: navigation away from the app is blocked', async () => {
