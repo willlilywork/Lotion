@@ -20,7 +20,17 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await app.close();
+  // On headless Linux runners Electron can hang on quit (no session D-Bus). Bound the
+  // graceful close, then kill, so teardown never masks a real result.
+  const proc = app.process();
+  const closed = await Promise.race([
+    app.close().then(() => true),
+    new Promise<false>((r) => setTimeout(() => r(false), 10_000)),
+  ]);
+  if (!closed) {
+    console.warn('electron did not quit within 10 s; killing');
+    proc.kill('SIGKILL');
+  }
 });
 
 test('launch: window opens and the bridge answers', async () => {

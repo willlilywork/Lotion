@@ -43,7 +43,7 @@ jobs:
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: E2E (Linux, virtual display)
         if: runner.os == 'Linux'
-        run: xvfb-run --auto-servernum pnpm e2e
+        run: dbus-run-session -- xvfb-run --auto-servernum pnpm e2e
       - name: E2E (Windows)
         if: runner.os == 'Windows'
         run: pnpm e2e
