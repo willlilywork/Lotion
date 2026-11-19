@@ -25,7 +25,11 @@ test.afterAll(async () => {
   const proc = app.process();
   const closed = await Promise.race([
     app.close().then(() => true),
-    new Promise<false>((r) => setTimeout(() => r(false), 10_000)),
+    new Promise<false>((r) =>
+      setTimeout(() => {
+        r(false);
+      }, 10_000),
+    ),
   ]);
   if (!closed) {
     console.warn('electron did not quit within 10 s; killing');
