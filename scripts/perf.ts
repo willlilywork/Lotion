@@ -21,17 +21,28 @@ function time<T>(fn: () => T, reps: number): { p50: number; max: number; out: T 
   return { p50: xs[Math.floor(xs.length / 2)] ?? NaN, max: xs[xs.length - 1] ?? NaN, out };
 }
 
+// Setup lookups are cached so they never count against a probe's time.
+const memo = new WeakMap<Database.Database, unknown>();
+function largestPage(db: Database.Database): unknown {
+  if (!memo.has(db))
+    memo.set(
+      db,
+      db
+        .prepare(
+          `SELECT page_id FROM block WHERE type!='page' GROUP BY page_id ORDER BY count(*) DESC LIMIT 1`,
+        )
+        .pluck()
+        .get(),
+    );
+  return memo.get(db);
+}
+
 export const probes: Probe[] = [
   {
     id: 'page-load (largest page, all blocks ordered)',
     budgetMs: null, // P-PAGE is a paint budget; DB share recorded in T0-08
     run: (db) => {
-      const pg = db
-        .prepare(
-          `SELECT page_id FROM block WHERE type!='page' GROUP BY page_id ORDER BY count(*) DESC LIMIT 1`,
-        )
-        .pluck()
-        .get();
+      const pg = largestPage(db);
       return db
         .prepare(
           'SELECT id,parent_id,type,sort_key,content FROM block WHERE page_id=? ORDER BY parent_id,sort_key',
@@ -80,6 +91,7 @@ function main() {
     const db = new Database(file, { readonly: true });
     let failed = 0;
     for (const p of probes) {
+      p.run(db); // warm-up + setup, not timed
       const r = time(() => p.run(db), smoke ? 3 : 15);
       const over = !smoke && p.budgetMs !== null && r.p50 > p.budgetMs;
       if (over) failed++;
