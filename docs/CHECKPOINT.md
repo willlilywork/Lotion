@@ -2,7 +2,13 @@
 
 Updated at every stopping point so work can resume cold.
 
-## Current — CP-003 — 2026-11-19
+## Current — CP-004 — 2026-11-19
+
+- **State:** T0-01 DONE. T0-02, T0-03 green on Windows + Ubuntu (run 44544245891), each awaiting its second review (R). Dependabot PR #2 closed; #1 (TypeScript 6.0.3) open, unevaluated.
+- **Next task:** T0-04 `utilityProcess` DB host + MessagePort broker + zod-validated `ping`.
+- **Resume steps:** README → 04-BUILD-PLAN Phase 0 → LOG.md last entry.
+
+## Previous — CP-003 — 2026-11-19
 
 - **State:** T0-01 DONE; T0-02 CI green on Windows + Ubuntu (run 44540499990), awaiting its second review (R). Dependabot active; open PRs #1 (TypeScript 6.0.3, within typescript-eslint range — evaluate) and #2 (@types/node 26, now ignored for majors — close).
 - **Next task:** T0-03 Electron shell (sandboxed renderer, preload bridge, CSP, navigation lock) with an E2E launch test via Playwright `_electron`.

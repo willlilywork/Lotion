@@ -43,3 +43,6 @@ Decision: ZIP with manifest + `VACUUM INTO` snapshot + content-addressed assets,
 
 ## ADR-014 — Toolchain versions at T0-01 — Accepted — 2026-11-19
 Node 22 LTS, pnpm 12.21.0 (pinned via `packageManager`), TypeScript 5.9.3 (TypeScript 7 is out but typescript-eslint 8.73 supports `<6.1`), ESLint 10 with typescript-eslint strict type-checked rules, Vitest 5, Prettier 3. Upgrade TypeScript when typescript-eslint supports 7.x.
+
+## ADR-015 — Build and E2E tooling for the shell — Accepted — 2026-11-19
+esbuild bundles main and preload as CommonJS (sandboxed preloads cannot be ESM) and the renderer as an IIFE; Vite is reconsidered when the React UI lands (Phase 2). Electron 45 downloads its binary lazily on first `require('electron')`, so CI prefetches it before E2E. E2E uses Playwright `_electron`; on Linux it runs under `dbus-run-session` + `xvfb-run` with `kernel.apparmor_restrict_unprivileged_userns=0` so the Chromium sandbox stays on. Tests must never open http(s) URLs through `window.open` (they go to the OS browser). `LOTION_SMOKE=1` makes the app quit after first load; it backs the Linux launch smoke and will back the packaged-app smoke (T0-05).
