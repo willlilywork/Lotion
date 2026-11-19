@@ -1,0 +1,43 @@
+# 05 — Quality
+
+## Performance budgets
+
+Measured on CI runners (2-4 vCPU) against the reference dataset from `scripts/gen-dataset.ts` (50k pages, 1M blocks, 20 databases × 10k rows, ~30% Arabic text). Reported as p50/p95 over 30 runs in `tests/perf/report.json`; regressions > 20% fail CI.
+
+| ID | Operation | p95 budget |
+|---|---|---|
+| P-START | Cold start to editable last page | 1500 ms |
+| P-PAGE | Open page with 2,000 blocks (first paint of viewport) | 150 ms |
+| P-KEY | Keystroke to paint | 16 ms |
+| P-SAVE | Command round-trip (renderer→DB→ack) | 10 ms |
+| P-SEARCH | Quick find over full dataset, first 20 results | 100 ms |
+| P-DBVIEW | Table view, 10k rows, filter + sort, first window | 120 ms |
+| P-SCROLL | Scrolling 10k-row table | ≥ 55 fps |
+| P-MEM | Resident memory after opening 20 pages | < 600 MB |
+
+## Test pyramid
+
+- **Unit (Vitest):** commands, undo, fractional index, filter compiler, normalizer, converters, keymap. Property-based tests (fast-check) for undo reversibility, ordering, and filter compiler vs reference evaluator.
+- **E2E (Playwright `_electron`):** every AC marked E2E; tagged `@AC-XX-NNN` in the test title so `check-ids` can map them.
+- **Visual regression:** our own UI only (LTR and RTL fixtures), Playwright screenshots stored in-repo — screenshots of Lotion itself, never of third-party products.
+- **Perf:** nightly full run; smoke run on every PR.
+- **Accessibility:** axe-core on main screens (AC-A11Y-001, 0.1); every interactive control has a role and label; focus visible; full keyboard paths covered by E2E.
+
+## Traceability
+
+- `docs/01-PRODUCT-SPEC.md` is the only place AC IDs are defined.
+- `pnpm check-ids` fails on: duplicate ID, ID without test, test tag without ID, AC without FT.
+- `docs/LOG.md` is append-only: `LOG-NNNN | date (UTC) | task | commit | CI run URL | result`.
+- CI artifacts kept 90 days; release evidence attached to the GitHub Release (permanent).
+
+## CI and supply chain
+
+- All third-party actions pinned to full commit SHA, with the tag in a comment; Dependabot updates them weekly.
+- Default `permissions: contents: read`; no workflow pushes to `main`.
+- Lockfile committed; `pnpm install --frozen-lockfile` in CI.
+- `pnpm audit --prod` and license check (allow MIT/ISC/BSD/Apache-2.0/OFL/MPL-2.0) run on PRs.
+- Electron fuses: `RunAsNode` off, `EnableNodeOptionsEnvironmentVariable` off, `OnlyLoadAppFromAsar` on, `EnableEmbeddedAsarIntegrityValidation` on.
+
+## Security review checklist (tasks marked R)
+
+Context isolation, sandbox, CSP, no `remote`, IPC schema validation, asset protocol cannot read arbitrary paths, path traversal tests on import, zip-slip tests on import, no `shell.openExternal` without scheme allow-list (`http`, `https`, `mailto`).
