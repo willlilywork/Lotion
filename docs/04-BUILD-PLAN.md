@@ -5,7 +5,7 @@
 - Each task card names: **paths** it creates/changes, the **acceptance IDs** it closes, the exact **verify command**, and a **size** (S ≤ ½ day, M ≤ 1 day). Nothing larger than M; split instead.
 - A task is `DONE` when its verify command passes on CI (windows-latest + ubuntu-latest) and a log entry `LOG-NNNN` is appended to `docs/LOG.md` with commit SHA and CI run URL.
 - Review is **risk-tiered**: tasks marked `R` (security boundary, data loss, migrations, packaging) get a second review pass (a separate reviewer session) before `DONE`; others are self-verified by CI. No single gate blocks the whole plan.
-- A vertical slice ships first: by the end of Phase 2 the app is usable for real notes.
+- Databases are the product's reason to exist, so the database engine (Phase 3) starts right after storage (G1), in parallel with the editor, and its scale is proven in Phase 0 (T0-09) before anything is frozen.
 
 ## Phase 0 — Foundations (gate G0: CI green, packaging proven)
 
@@ -18,7 +18,9 @@
 | T0-05 | Packaging: NSIS `.exe` and `.deb`; CI installs, launches (smoke), uninstalls on runners | `electron-builder.yml`, `.github/workflows/package.yml` | package job green | M R |
 | T0-06 | ID/traceability checker: unique AC IDs, each mapped to a FT and ≥1 test tag `@AC-…` | `scripts/check-ids.ts` | `pnpm check-ids` | S |
 | T0-07 | Perf harness + synthetic dataset generator (50k pages, 1M blocks, 20 DBs × 10k rows, 30% Arabic) | `scripts/gen-dataset.ts`, `tests/perf/*` | `pnpm perf --smoke` | M |
-| T0-08 | Spike: SQLite schema at 1M blocks — page load, sibling insert, FTS query, DB view window; record numbers | `tests/perf/schema.spec.ts`, `docs/LOG.md` | numbers within 05 budgets or ADR raised | M |
+| T0-08 | Spike A: schema at 1M blocks — page load, sibling insert, FTS query; record numbers | `tests/perf/schema.spec.ts`, `docs/LOG.md` | numbers within 05 budgets or ADR raised | M |
+| T0-09 | Spike B: database engine at scale — 10k-row view with relations/rollups/formulas (materialized `computed_value`), nested filter + sort + group SQL, dirty-set recompute of 1,000 dependents | `tests/perf/db-engine.spec.ts` | P-DBVIEW, P-RECOMP met or ADR raised | M |
+| T0-10 | Spike C: `VACUUM INTO` + ZIP backup/restore of reference dataset, Windows→Ubuntu round-trip in CI | `tests/perf/backup.spec.ts`, `.github/workflows/ci.yml` | P-BACKUP, P-RESTORE, canonical dump equal | S |
 
 ## Phase 1 — Storage core (G1: schema frozen v1)
 
@@ -57,20 +59,60 @@
 | T2-14 | Title, icon, cover, images via asset protocol | `src/renderer/page/*`, `src/main/asset-protocol.ts` | AC-ED-018 | M R |
 | T2-15 | Settings, theme, favorites, Trash UI, find in page | `src/renderer/settings/*` | AC-WS-003/006/007, AC-ED-021 | M |
 
-## Phase 3 — Databases (G3)
+## Phase 3 — Database engine (no UI; starts at G1, runs in parallel with Phase 2)
 
-T3-01 property CRUD + conversions (AC-DB-002) · T3-02 filter/sort compiler + reference evaluator (AC-DB-007/008) · T3-03 table view virtualized (AC-DB-003/010) · T3-04 board (AC-DB-004) · T3-05 list (AC-DB-005) · T3-06 calendar (AC-DB-006) · T3-07 multiple views (AC-DB-009) · T3-10 database direction and mirrored views (AC-BIDI-011) · T3-08 inline DB block (AC-DB-001) · T3-09 CSV import/export (AC-DB-011). Cards to be expanded to full form at G2.
+| ID | Task | Paths | Verify | Size |
+|---|---|---|---|---|
+| T3-01 | Property CRUD + type conversions with undo | `src/db/commands/property.ts` | AC-DB-002 | M |
+| T3-02 | Values for all simple types incl. files, person, unique ID | `src/db/commands/value.ts` | unit | M |
+| T3-03 | Relations one-/two-way, self-relations, limit, delete cascade invariants (property-based) | `src/db/commands/relation.ts` | AC-DB-003 | M R |
+| T3-04 | Formula lexer + Pratt parser + AST + fuzz tests | `src/db/compute/formula/parse.ts` | `pnpm test formula/parse` | M |
+| T3-05 | Formula type checker + error messages | `src/db/compute/formula/types.ts` | negative-case suite | M |
+| T3-06 | Formula functions (logic, math, text, date, list, page) + golden files | `src/db/compute/formula/fns/*` | AC-DB-005 goldens | M |
+| T3-07 | Rollup aggregators | `src/db/compute/rollup.ts` | AC-DB-004 | S |
+| T3-08 | Dependency graph, cycle detection, dirty-set propagation, `verify-computed` | `src/db/compute/graph.ts`, `propagate.ts`, `scripts/verify-computed.ts` | AC-DB-006 (property-based) | M R |
+| T3-09 | Filter AST → SQL compiler (all operators, 3-level groups, relative dates) + reference evaluator | `src/db/query/filter.ts` | AC-DB-013 (property-based) | M |
+| T3-10 | Sorts with ICU collation (ar, en), groups, sub-groups, calculations | `src/db/query/sort-group-calc.ts` | AC-DB-014/015/016 | M |
+| T3-11 | View config model, linked views, "this row" filters, lock | `src/db/commands/view.ts` | AC-DB-017/020/021 | M |
+| T3-12 | Row templates, sub-items | `src/db/commands/template.ts` | AC-DB-018/019 | M |
+| T3-13 | Live query subscriptions with dependency-based invalidation | `src/db/query/live.ts` | unit + AC-DB-022 smoke | M |
 
-## Phase 4 — I/O and release 0.1 (G4)
+## Phase 4 — Database UI (G3 needs G2 + Phase 3)
 
-T4-01 Markdown export (AC-IO-001) · T4-02 Markdown/CSV import (AC-IO-002) · T4-03 PDF export (AC-IO-003) · T4-04 perf pass on reference dataset · T4-05 release checklist, clean-VM install tests, `0.1.0` tag.
+| ID | Task | Paths | Verify | Size |
+|---|---|---|---|---|
+| T4-01 | Database page + inline block + view tabs + property menus | `src/renderer/db/*` | AC-DB-001, 024 | M |
+| T4-02 | Table view: virtualized grid, cell editors per type, keyboard, ranges, TSV copy/paste, peek modes | `src/renderer/db/table/*` | AC-DB-008 | M (×2 cards) |
+| T4-03 | Filter/sort/group builder UI | `src/renderer/db/query-ui/*` | AC-DB-013/014/015 E2E | M |
+| T4-04 | Formula editor: autocomplete, inline errors, bidi tokens | `src/renderer/db/formula-editor/*` | AC-DB-005 E2E | M |
+| T4-05 | Board view | `src/renderer/db/board/*` | AC-DB-009 | M |
+| T4-06 | List + gallery views | `src/renderer/db/list/*`, `gallery/*` | AC-DB-007, 010 | M |
+| T4-07 | Calendar view | `src/renderer/db/calendar/*` | AC-DB-011 | M |
+| T4-08 | Timeline view with dependencies | `src/renderer/db/timeline/*` | AC-DB-012 | M (×2 cards) |
+| T4-09 | Calculations row, database search, sub-items UI | `src/renderer/db/table/*` | AC-DB-016/019/023 | M |
+| T4-10 | Templates UI, linked view insertion | `src/renderer/db/templates/*` | AC-DB-017/018 | M |
+| T4-11 | Database direction & mirrored views | `src/renderer/db/*` | AC-BIDI-011 | S |
+| T4-12 | Perf pass on reference dataset | `tests/perf/*` | AC-DB-022, P-DBVIEW, P-RECOMP | M |
+
+## Phase 5 — Portability and release 0.1 (G4)
+
+| ID | Task | Paths | Verify | Size |
+|---|---|---|---|---|
+| T5-01 | DataBackup.lotion export (manifest, `VACUUM INTO`, assets, hashes) | `src/db/backup/export.ts` | AC-IO-001 | M R |
+| T5-02 | Import: validate, migrate forward, atomic swap, new-workspace mode | `src/db/backup/import.ts` | AC-IO-002/003/004 | M R |
+| T5-03 | Encryption (AES-256-GCM, Argon2id) | `src/db/backup/crypto.ts` | AC-IO-005 | S R |
+| T5-04 | Scheduled backups | `src/main/backup-scheduler.ts` | AC-IO-006 | S |
+| T5-05 | Cross-OS round-trip CI job (export Windows → import Ubuntu, and reverse) | `.github/workflows/portability.yml` | AC-IO-002 | S R |
+| T5-06 | Markdown/CSV export & import, other-app export import | `src/db/io/*` | AC-IO-007/008/009 | M (×2 cards) |
+| T5-07 | PDF export | `src/main/pdf.ts` | AC-IO-010 | S |
+| T5-08 | Release checklist, clean-VM install tests, `0.1.0` tag with evidence attached | `docs/RELEASE.md` | all `0.1` AC green | M |
 
 ## Gates
 
 | Gate | Opens | Condition |
 |---|---|---|
-| G0 | Phase 1 | T0-01…T0-08 DONE; T0-08 numbers recorded |
-| G1 | Phase 2 & 3 (in parallel) | Phase 1 DONE; migration fixture committed |
-| G2 | daily use | Phase 2 DONE |
-| G3 | Phase 4 | Phase 3 DONE |
-| G4 | release | all `0.1` AC pass; perf budgets pass |
+| G0 | Phase 1 | T0-01…T0-10 DONE; spike numbers recorded |
+| G1 | Phase 2 & Phase 3 (in parallel) | Phase 1 DONE; migration fixture committed |
+| G2 | daily note-taking | Phase 2 DONE |
+| G3 | Phase 4 | G2 + Phase 3 DONE |
+| G4 | Phase 5 completion & release | Phase 4 DONE; all `0.1` AC pass; perf budgets pass |

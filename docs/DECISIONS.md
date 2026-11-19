@@ -28,3 +28,15 @@ Electron (exact version pinned at T0-01 to the current stable), React 19, ProseM
 
 ## ADR-009 — Three-level text direction — Accepted — 2026-11-19
 Context: native Arabic support is a core requirement, beyond what common block editors offer. Decision: block override → page mode (`auto|ltr|rtl|inherit`, inherited by sub-pages) → auto by first strong character; resolution computed in the renderer, not stored per block. Consequence: switching a page with thousands of blocks costs one write; "apply to all" clears overrides in one undoable transaction.
+
+## ADR-010 — Databases are the core; engine before UI — Accepted — 2026-11-19
+Context: the user's stated reason for Lotion is a database layer equal to the most advanced hosted workspaces, which local-first apps lack. Decision: relations, rollups, formulas, six view types, linked views and templates are 0.1 scope; the engine is built and proven headless (Phase 3) in parallel with the editor. Consequence: 0.1 is larger; Phase 0 gains spike T0-09.
+
+## ADR-011 — Materialized computed values with synchronous propagation — Accepted (pending T0-09 numbers) — 2026-11-19
+Decision: formula/rollup results stored in `computed_value`, recomputed via a property dependency DAG inside the writing transaction; time-dependent formulas evaluated at query time. Consequence: filters/sorts on computed properties use indexes; writes pay for propagation (budget P-RECOMP). Fallback if T0-09 fails: deferred propagation in a background transaction with a "computing…" cell state.
+
+## ADR-012 — Own formula language — Accepted — 2026-11-19
+Decision: Lotion Formula (06-FORMULA), spreadsheet-style, typed, sandboxed (no JS eval). Consequence: golden tests per function; no claim of compatibility with any other product's formulas.
+
+## ADR-013 — Portable backup container `.lotion` — Accepted — 2026-11-19
+Decision: ZIP with manifest + `VACUUM INTO` snapshot + content-addressed assets, per-entry SHA-256, optional AES-256-GCM/Argon2id. Consequence: cross-OS round-trip CI job is a release gate.

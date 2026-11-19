@@ -15,7 +15,7 @@ Release tags: **0.1** = required for the first daily-driver build; **0.2+** = pl
 | AC-WS-005 | Quick find (Ctrl+P) searches titles and content, ranked, keyboard navigable. | Results within budget P-SEARCH; Enter opens. | 0.1 |
 | AC-WS-006 | Trash: deleted pages go to Trash with their subtree; restore puts them back under the original parent (or root if parent gone); permanent delete after confirm. | Unit + E2E. | 0.1 |
 | AC-WS-007 | Settings: theme (light/dark/system), font (default/serif/mono), default text direction for root pages (auto/LTR/RTL), spellcheck languages. | Persisted; applied without restart. | 0.1 |
-| AC-WS-008 | Backup now / restore from backup (single `.lotion` file, SQLite online backup). | Round-trip equality of all rows. | 0.1 |
+| AC-WS-008 | Settings → Data shows workspace location, size, last backup, and the export/import actions of FT-IO. | E2E. | 0.1 |
 | AC-WS-009 | Multiple windows open different pages; edits appear in the other window within 200 ms. | E2E two windows. | 0.2 |
 
 ## FT-ED — Block editor
@@ -73,37 +73,82 @@ Lotion treats Arabic as a first-class language. Direction is resolved at three l
 | AC-BIDI-014 | Full Arabic UI language with mirrored application chrome. | — | 0.2 |
 | AC-BIDI-015 | Arabic spellcheck available when the OS dictionary exists (Chromium spellchecker `ar`). | E2E on Windows. | 0.1 |
 
-## FT-DB — Databases
+## FT-DB — Advanced databases (the core of Lotion)
 
-A database is a page whose children are row pages; each row has property values. Inline databases (inside a page) and full-page databases are the same object rendered differently.
+Lotion exists to give a local, offline workspace a database layer at least as capable as the best hosted block workspaces: typed properties, relations between databases, rollups, a formula language, many view types over the same data, linked views, templates, and fast filtering at tens of thousands of rows. These requirements are **0.1** unless tagged otherwise.
 
-Property types 0.1: title, text, number (format: plain/percent/currency symbol), select, multi-select, status (groups: to-do/in progress/done), date (with optional end and time), checkbox, URL, email, phone, created time, last edited time. 0.2: relation, rollup, formula, files, person (local "people" list).
+**Model.** A database is a page whose child pages are its rows. Every row is a full page (it can hold any blocks). Inline and full-page databases are the same object rendered differently. A **linked view** is a view block placed in any page that points at a database elsewhere.
+
+### Property types
+
+| Type | Notes | Rel |
+|---|---|---|
+| Title | One per database; row page title | 0.1 |
+| Text | Rich text (marks, mentions) | 0.1 |
+| Number | Formats: plain, comma, percent, currency (user-chosen symbol), with decimals; display as number, bar, or ring | 0.1 |
+| Select / Multi-select | Options with our own color palette; reorder, rename, merge options | 0.1 |
+| Status | Options grouped into To-do / In progress / Complete | 0.1 |
+| Date | Start, optional end, optional time and time zone; reminder flag (local notification) | 0.1 |
+| Checkbox, URL, Email, Phone | | 0.1 |
+| Files & media | Local files copied into the workspace assets | 0.1 |
+| Person | From a local "People" list (no accounts) | 0.1 |
+| Relation | Link rows to rows of the same or another database; one-way or two-way (synced property on the other side); optional limit to 1 row | 0.1 |
+| Rollup | Aggregate a property across related rows (see functions below) | 0.1 |
+| Formula | Expression over properties, relations and rollups (language in 06-FORMULA) | 0.1 |
+| Unique ID | Auto-increment with optional prefix (e.g. `TASK-42`), never reused | 0.1 |
+| Created time / Last edited time | System | 0.1 |
+| Button | Runs a local action list: set properties, add a row to a database, open a page | 0.2 |
+
+### Requirements
 
 | ID | Requirement | Oracle | Rel |
 |---|---|---|---|
-| AC-DB-001 | Create a database (full page or inline via `/database`). | E2E. | 0.1 |
-| AC-DB-002 | Add/rename/reorder/hide/delete properties; change type with defined conversions (table in 03-DATA-MODEL). | Unit per conversion pair. | 0.1 |
-| AC-DB-003 | Table view: inline cell editing, column resize, keyboard navigation, add row, open row as page. | E2E. | 0.1 |
-| AC-DB-004 | Board view grouped by select/status; drag cards between columns updates the value; card order persists per view. | E2E. | 0.1 |
-| AC-DB-005 | List view. | E2E. | 0.1 |
-| AC-DB-006 | Calendar view by a date property; drag to reschedule. | E2E. | 0.1 |
-| AC-DB-007 | Filters: per-type operators (is, is not, contains, starts with, is empty, >, <, before, after, within N days, checked); AND/OR one nesting level. | Unit against SQL compiler. | 0.1 |
-| AC-DB-008 | Sorts: multiple keys; stable; locale-aware for Arabic and English. | Unit. | 0.1 |
-| AC-DB-009 | Multiple named views per database, each with its own filters/sorts/visible properties. | E2E. | 0.1 |
-| AC-DB-010 | View with 10,000 rows scrolls at budget P-DBVIEW (virtualized). | Perf test. | 0.1 |
-| AC-DB-011 | CSV import into a new database (type inference with preview) and CSV export of a view. | Unit fixtures. | 0.1 |
-| AC-DB-012 | Row page templates (default content on new row). | — | 0.2 |
-| AC-DB-013 | Relations and rollups. | — | 0.2 |
-| AC-DB-014 | Gallery and timeline views. | — | 0.2 |
+| AC-DB-001 | Create a database as a full page or inline (`/database`), empty or from CSV. | E2E. | 0.1 |
+| AC-DB-002 | Add, rename, reorder, hide, duplicate, delete properties; change type with defined, previewed, undoable conversions (03-DATA-MODEL). | Unit per conversion pair. | 0.1 |
+| AC-DB-003 | Relation: create one-way or two-way; editing either side updates the other in the same transaction; deleting a row removes it from all relations; self-relations supported (parent/child, dependencies). | Unit: invariants after random edits (property-based). | 0.1 |
+| AC-DB-004 | Rollup over a relation with functions: show original, count all, count values, count unique, count empty/not empty, percent empty/not empty, sum, average, median, min, max, range, earliest/latest date, date range, checked/unchecked counts and percents. | Unit vs reference evaluator. | 0.1 |
+| AC-DB-005 | Formulas: typed language (06-FORMULA) with live error messages, autocomplete of properties and functions, and results usable in filters, sorts, groups and other formulas/rollups. | Unit: function table + golden tests. | 0.1 |
+| AC-DB-006 | Computed values (formula, rollup, two-way relation) are consistent after every command: changing a row recomputes all dependents across databases before the command returns. Cycles are rejected at definition time. | Property-based: random edits → recompute-from-scratch equals incremental. | 0.1 |
+| AC-DB-007 | Views: table, board, list, gallery, calendar, timeline. Each database has any number of named views with independent filters, sorts, grouping, visible properties, property order and widths. | E2E per view. | 0.1 |
+| AC-DB-008 | Table view: inline editing, keyboard navigation (arrows, Enter, Esc, Tab), multi-cell selection, copy/paste of cell ranges to/from spreadsheet TSV, column resize, freeze first column, wrap cells toggle, add row at end, open row as side peek / center peek / full page. | E2E. | 0.1 |
+| AC-DB-009 | Board view grouped by select, multi-select, status, person, checkbox, relation, or date (by day/week/month); drag cards between groups updates the value; manual card order persists per view; card preview (cover, properties). | E2E. | 0.1 |
+| AC-DB-010 | Gallery view with card preview from page cover, first image, or file property; card size S/M/L. | E2E. | 0.1 |
+| AC-DB-011 | Calendar view by any date property or date formula; month/week; drag to reschedule; multi-day spans. | E2E. | 0.1 |
+| AC-DB-012 | Timeline view by start/end dates; zoom day/week/month/quarter/year; drag/resize bars; optional table pane; dependency arrows from a self-relation ("blocked by"). | E2E. | 0.1 |
+| AC-DB-013 | Filters: per-type operators (text: is, is not, contains, does not contain, starts with, ends with, is empty/not empty; number: =, ≠, >, <, ≥, ≤; date: is, before, after, on or before, on or after, between, relative (today, past/next N days/weeks/months, this week/month/year); select/status/person: is, is not, contains any, contains all; checkbox; relation: contains, does not contain, is empty; rollup and formula by their result type). Filter groups with AND/OR nested up to 3 levels. | Unit: SQL compiler vs reference evaluator (property-based). | 0.1 |
+| AC-DB-014 | Sorts: multiple keys, any property including formula/rollup; stable; locale-aware collation for Arabic and English; manual order when no sort. | Unit. | 0.1 |
+| AC-DB-015 | Group by (table, list, gallery, timeline) and sub-group (board); hide empty groups; collapse groups; per-group counts. | E2E. | 0.1 |
+| AC-DB-016 | Calculations row per column: count, count values, unique, empty, not empty, percent empty/not empty, sum, average, median, min, max, range, earliest/latest, checked/unchecked; computed over the filtered view, per group too. | Unit vs reference. | 0.1 |
+| AC-DB-017 | Linked views: insert a view of an existing database in any page (`/linked view`), with its own filters/sorts; edits write through to the source database. | E2E. | 0.1 |
+| AC-DB-018 | Row templates: multiple templates per database (properties preset + page content); a default template; templates may include a nested linked view filtered to "this row". | E2E. | 0.1 |
+| AC-DB-019 | Sub-items: a self-relation shown as nested rows (expand/collapse) in table and list views, filter applies to parents or children per setting. | E2E. | 0.1 |
+| AC-DB-020 | Filter by "this row" and relative "today" inside templates and linked views. | Unit. | 0.1 |
+| AC-DB-021 | Database lock: prevents schema and view edits while allowing row edits. | E2E. | 0.1 |
+| AC-DB-022 | Performance: table view of 10,000 rows with 3 relations, 3 rollups, 5 formulas filters+sorts within P-DBVIEW; editing a cell that feeds 1,000 dependents recomputes within P-RECOMP. | Perf test. | 0.1 |
+| AC-DB-023 | Database search box per view (text match over visible text-like properties). | E2E. | 0.1 |
+| AC-DB-024 | Duplicate database (with or without rows); move a database between pages; turn a table block into a database. | E2E. | 0.1 |
+| AC-DB-025 | Page history for row pages and database schema (restore a version within 30 days, from change_log snapshots). | E2E. | 0.2 |
+| AC-DB-026 | Chart view (bar, line, donut) over a view's groups. | — | 0.2 |
+| AC-DB-027 | Local automations: when a property changes or a row is added, run an action list (set properties, add row, add to relation). | — | 0.2 |
+| AC-DB-028 | Form view: a local form that adds rows. | — | 0.3 |
 
-## FT-IO — Import / export
+## FT-IO — Portable backup, import and export
+
+**DataBackup.lotion** is the portable file that carries the whole workspace from one machine to another (Windows ↔ Ubuntu). Format in 03-DATA-MODEL §Backup format.
 
 | ID | Requirement | Oracle | Rel |
 |---|---|---|---|
-| AC-IO-001 | Export page (optionally with sub-pages) to Markdown + assets folder, zipped. | Round-trip fixture: export→import yields same block tree for supported types. | 0.1 |
-| AC-IO-002 | Import folder/zip of Markdown files (CommonMark + GFM tables/task lists) preserving folder hierarchy as nested pages; CSV files become databases. | Fixture corpus. | 0.1 |
-| AC-IO-003 | Export page to PDF via Chromium print. | File produced, non-empty, text extractable. | 0.1 |
-| AC-IO-004 | Export/import HTML. | — | 0.2 |
+| AC-IO-001 | "Export everything" writes one `.lotion` file (default name `DataBackup.lotion`) containing all pages, blocks, databases, properties, views, templates, relations, formulas, assets, favorites and settings; the app keeps working while it runs, and the snapshot is transactionally consistent. | Integration: export while a writer runs; restored DB equals snapshot. | 0.1 |
+| AC-IO-002 | "Import backup" on another machine (any supported OS) restores the workspace exactly: every row of every table, every asset byte (SHA-256), every link, view and template. | Cross-OS CI job: export on Windows, import on Ubuntu and vice versa, then compare canonical dumps. | 0.1 |
+| AC-IO-003 | Import validates before touching anything: manifest version, per-entry SHA-256, SQLite `integrity_check`, schema version (older → migrated forward; newer → refused with a clear message). | Unit with corrupted/truncated/tampered fixtures. | 0.1 |
+| AC-IO-004 | Import modes: "Replace this workspace" (current one is backed up first automatically) or "Open as a new workspace". | E2E. | 0.1 |
+| AC-IO-005 | Optional passphrase encryption of the backup (AES-256-GCM, key from Argon2id). | Unit: wrong passphrase fails, tamper fails. | 0.1 |
+| AC-IO-006 | Scheduled automatic backups to a user-chosen folder (daily, keep N). | E2E with fake clock. | 0.1 |
+| AC-IO-007 | Export page (optionally with sub-pages) to Markdown + assets (zip); databases export as CSV plus a row page per Markdown file. | Round-trip fixture. | 0.1 |
+| AC-IO-008 | Import Markdown/CSV folders or zip, preserving hierarchy; CSV becomes a database with type inference and preview. | Fixture corpus. | 0.1 |
+| AC-IO-009 | Import the user's own Markdown & CSV export zip from another workspace app, reconstructing nested pages, databases, and relations from page-link columns. | Fixture corpus (synthetic, authored by us). | 0.1 |
+| AC-IO-010 | Export a page to PDF. | Text extractable. | 0.1 |
+| AC-IO-011 | Merge a backup into an existing workspace (conflict-free by UUID, newer `updated_at` wins, report of conflicts). | — | 0.2 |
 
 ## FT-SR — Search
 

@@ -2,7 +2,7 @@
 
 ## Performance budgets
 
-Measured on CI runners (2-4 vCPU) against the reference dataset from `scripts/gen-dataset.ts` (50k pages, 1M blocks, 20 databases × 10k rows, ~30% Arabic text). Reported as p50/p95 over 30 runs in `tests/perf/report.json`; regressions > 20% fail CI.
+Measured on CI runners (2-4 vCPU) against the reference dataset from `scripts/gen-dataset.ts` (50k pages, 1M blocks, 20 databases × 10k rows with relations between 6 of them, 40 rollups, 60 formulas, ~30% Arabic text). Reported as p50/p95 over 30 runs in `tests/perf/report.json`; regressions > 20% fail CI.
 
 | ID | Operation | p95 budget |
 |---|---|---|
@@ -11,7 +11,11 @@ Measured on CI runners (2-4 vCPU) against the reference dataset from `scripts/ge
 | P-KEY | Keystroke to paint | 16 ms |
 | P-SAVE | Command round-trip (renderer→DB→ack) | 10 ms |
 | P-SEARCH | Quick find over full dataset, first 20 results | 100 ms |
-| P-DBVIEW | Table view, 10k rows, filter + sort, first window | 120 ms |
+| P-DBVIEW | Table view, 10k rows with 3 relations, 3 rollups, 5 formulas; nested filter + 2 sorts + group; first window | 150 ms |
+| P-RECOMP | Edit one cell feeding 1,000 dependent computed values across 2 databases | 50 ms |
+| P-REDEF | Change a formula on a 10k-row database (full column recompute) | 2 s |
+| P-BACKUP | Export DataBackup.lotion for reference dataset (excluding assets) | 20 s |
+| P-RESTORE | Import + verify the same backup | 30 s |
 | P-SCROLL | Scrolling 10k-row table | ≥ 55 fps |
 | P-MEM | Resident memory after opening 20 pages | < 600 MB |
 

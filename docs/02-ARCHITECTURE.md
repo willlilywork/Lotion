@@ -47,8 +47,12 @@ Text typing is coalesced in the renderer (300 ms idle or 1 s max) into one `bloc
 ## Read path
 
 - `page.load(pageId)` returns the block tree for visible depth plus collapsed counts; large pages stream in chunks of 500 blocks.
-- `db.query(viewId, window)` compiles filters/sorts to SQL (see 03) and returns a window of rows plus total count.
+- `db.query(viewId, window)` compiles filters, sorts, groups and calculations to SQL over `prop_value`, `prop_option_value`, `relation_edge` and `computed_value` (see 03) and returns a window of rows, group headers, totals and calculation results.
 - Live queries: the DB process keeps, per subscription, the set of tables/properties a query depends on; a change touching them triggers re-query (coarse but correct; refined later if budgets require).
+
+## Computed values engine (databases)
+
+Lives in the DB process (`src/db/compute/`): formula parser/type-checker/compiler (`formula/`), rollup aggregators (`rollup.ts`), dependency graph (`graph.ts`), and the dirty-set propagator (`propagate.ts`). It runs synchronously inside the command's transaction, so a renderer never sees a row whose formulas are stale. Views read `computed_value` like any other column; the filter compiler treats formula/rollup properties by their result type.
 
 ## Undo
 

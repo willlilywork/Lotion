@@ -2,7 +2,7 @@
 
 ## Purpose
 
-A personal, offline block-based workspace that covers the everyday writing-and-organizing workflow of a hosted block editor, running entirely on one machine.
+A personal, offline workspace whose reason to exist is an **advanced database layer** — relations, rollups, formulas, many views over the same data, linked views and templates — of the kind most productivity apps (including local-first ones) do not offer, combined with a block editor and a **portable full backup** (`DataBackup.lotion`) that moves the entire workspace to another machine.
 
 ## Users
 
@@ -30,11 +30,13 @@ This policy is a guardrail, not legal advice. Anything that would be distributed
 
 ## In scope for 0.1 ("daily driver")
 
-Pages and nested pages, sidebar tree, core block types, slash menu, inline formatting, links and page mentions, backlinks, drag to reorder, undo/redo, full-text search, databases (table, board, list, calendar views) with properties, filters and sorts, Trash, Markdown import/export, light/dark theme, RTL/LTR.
+**Databases first:** all property types incl. relation, rollup, formula, unique ID, files, person; table, board, list, gallery, calendar and timeline views; nested filter groups, multi-sorts, grouping and sub-grouping, calculations; linked views; row templates; sub-items and dependencies.
+**Data portability:** DataBackup.lotion export/import across Windows and Ubuntu, optional encryption, scheduled backups; Markdown/CSV import and export.
+**Editor & workspace:** pages and nested pages, sidebar, core block types, slash menu, inline formatting, mentions and backlinks, drag to reorder, undo/redo, full-text search, Trash, themes, native Arabic with three-level direction.
 
 ## Out of scope for 0.1
 
-Real-time collaboration, sync, sharing/publishing, comments, AI features, web clipper, mobile, formulas beyond a small arithmetic set, relations/rollups (planned 0.2), gallery/timeline views (0.2), synced blocks (0.3), plugins.
+Real-time collaboration, sync, sharing/publishing, comments, AI features, web clipper, mobile, buttons, chart view, automations and page history (0.2), form view and synced blocks (0.3), plugins.
 
 ## Definition of done for 0.1
 

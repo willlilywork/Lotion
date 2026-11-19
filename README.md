@@ -1,6 +1,6 @@
 # Lotion
 
-Lotion is a local-first, offline desktop workspace for personal use: pages made of blocks, nested pages, and databases with views. Data lives in one SQLite file on the user's machine. No accounts, no cloud, no telemetry.
+Lotion is a local-first, offline desktop workspace for personal use, built around advanced databases (relations, rollups, formulas, six view types, linked views, templates) plus a block editor and a portable full backup (`DataBackup.lotion`) that moves everything to another machine. Data lives in one SQLite file on the user's machine. No accounts, no cloud, no telemetry.
 
 Targets: Windows (`.exe`, NSIS installer) and Debian/Ubuntu (`.deb`).
 
@@ -14,5 +14,6 @@ Planning (Phase 0). No application code yet. Start with:
 4. [docs/03-DATA-MODEL.md](docs/03-DATA-MODEL.md): schema, ordering, undo, change log
 5. [docs/04-BUILD-PLAN.md](docs/04-BUILD-PLAN.md): phases, task cards, gates
 6. [docs/05-QUALITY.md](docs/05-QUALITY.md): budgets, tests, CI policy
-7. [docs/DECISIONS.md](docs/DECISIONS.md): decision records
-8. [docs/CHECKPOINT.md](docs/CHECKPOINT.md): where work stopped and what comes next
+7. [docs/06-FORMULA.md](docs/06-FORMULA.md): the formula language
+8. [docs/DECISIONS.md](docs/DECISIONS.md): decision records
+9. [docs/CHECKPOINT.md](docs/CHECKPOINT.md): where work stopped and what comes next

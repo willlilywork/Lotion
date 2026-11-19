@@ -31,8 +31,8 @@ CREATE TABLE property (               -- schema of a database
   id TEXT PRIMARY KEY,
   database_id TEXT NOT NULL REFERENCES block(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  type TEXT NOT NULL,                 -- title|text|number|select|multi_select|status|date|checkbox|url|email|phone|created_time|edited_time
-  config TEXT NOT NULL DEFAULT '{}',  -- options [{id,name,color}], number format, status groups
+  type TEXT NOT NULL,                 -- title|text|number|select|multi_select|status|date|checkbox|url|email|phone|files|person|relation|rollup|formula|unique_id|created_time|edited_time
+  config TEXT NOT NULL DEFAULT '{}',  -- options, number format, status groups; relation: {target_db, paired_property_id|null, limit}; rollup: {relation_prop, target_prop, fn}; formula: {source, ast_hash, result_type, time_dependent}; unique_id: {prefix, next}
   sort_key TEXT NOT NULL
 );
 
@@ -51,11 +51,46 @@ CREATE INDEX pv_num  ON prop_value(property_id, v_num);
 CREATE INDEX pv_text ON prop_value(property_id, v_text);
 CREATE INDEX pv_date ON prop_value(property_id, v_date_start);
 
+CREATE TABLE relation_edge (          -- one row per link; two-way relations write both directions in one transaction
+  property_id TEXT NOT NULL REFERENCES property(id) ON DELETE CASCADE,
+  from_row TEXT NOT NULL REFERENCES block(id) ON DELETE CASCADE,
+  to_row   TEXT NOT NULL REFERENCES block(id) ON DELETE CASCADE,
+  sort_key TEXT NOT NULL,             -- user order of related rows in the cell
+  PRIMARY KEY (property_id, from_row, to_row)
+);
+CREATE INDEX rel_reverse ON relation_edge(property_id, to_row);
+
+CREATE TABLE computed_value (         -- materialized formula & rollup results (non-time-dependent)
+  row_id TEXT NOT NULL REFERENCES block(id) ON DELETE CASCADE,
+  property_id TEXT NOT NULL REFERENCES property(id) ON DELETE CASCADE,
+  v_type TEXT NOT NULL,               -- number|text|boolean|date|list|error|empty
+  v_text TEXT, v_num REAL, v_date_start INTEGER, v_date_end INTEGER, v_bool INTEGER, v_json TEXT,
+  PRIMARY KEY (row_id, property_id)
+);
+CREATE INDEX cv_num  ON computed_value(property_id, v_num);
+CREATE INDEX cv_text ON computed_value(property_id, v_text);
+CREATE INDEX cv_date ON computed_value(property_id, v_date_start);
+
+CREATE TABLE prop_dependency (        -- edges of the property dependency graph (DAG, cycles rejected)
+  property_id TEXT NOT NULL REFERENCES property(id) ON DELETE CASCADE,   -- the computed property
+  depends_on  TEXT NOT NULL REFERENCES property(id) ON DELETE CASCADE,
+  via_relation TEXT REFERENCES property(id) ON DELETE CASCADE,            -- NULL = same row
+  PRIMARY KEY (property_id, depends_on, via_relation)
+);
+
+CREATE TABLE person (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT, color TEXT);
+CREATE TABLE row_template (
+  id TEXT PRIMARY KEY, database_id TEXT NOT NULL REFERENCES block(id) ON DELETE CASCADE,
+  name TEXT NOT NULL, template_page_id TEXT NOT NULL REFERENCES block(id) ON DELETE CASCADE, -- hidden page holding preset content & values
+  is_default INTEGER NOT NULL DEFAULT 0, sort_key TEXT NOT NULL
+);
+
 CREATE TABLE view (
   id TEXT PRIMARY KEY,
   database_id TEXT NOT NULL REFERENCES block(id) ON DELETE CASCADE,
-  name TEXT NOT NULL, kind TEXT NOT NULL,      -- table|board|list|calendar
-  config TEXT NOT NULL,                        -- JSON: filter AST, sorts, visible props, widths, group_by, date_prop
+  host_block_id TEXT REFERENCES block(id) ON DELETE CASCADE, -- set for linked views placed in another page
+  name TEXT NOT NULL, kind TEXT NOT NULL,      -- table|board|list|gallery|calendar|timeline
+  config TEXT NOT NULL,                        -- JSON: filter AST, sorts, group_by, sub_group_by, visible props, widths, calcs, date props, card preview, locked
   sort_key TEXT NOT NULL
 );
 CREATE TABLE view_card_order (                -- manual order inside a board column / list
@@ -72,6 +107,7 @@ CREATE TABLE link (                   -- mentions & page links; source of backli
 );
 CREATE INDEX link_target ON link(target_page_id);
 
+CREATE TABLE unique_id_counter (property_id TEXT PRIMARY KEY REFERENCES property(id) ON DELETE CASCADE, next INTEGER NOT NULL);
 CREATE TABLE asset (sha256 TEXT PRIMARY KEY, mime TEXT NOT NULL, bytes INTEGER NOT NULL, created_at INTEGER NOT NULL);
 CREATE TABLE favorite (page_id TEXT PRIMARY KEY REFERENCES block(id) ON DELETE CASCADE, sort_key TEXT NOT NULL);
 
@@ -105,6 +141,31 @@ pageMode(p) = p.page_dir in ('auto','ltr','rtl') ? p.page_dir
 - `page.setDirection(pageId, mode)` writes one row. `page.applyDirectionToAll(pageId, mode)` also sets `direction = NULL` on every block with `page_id = pageId` in one transaction; its undo inverse lists the cleared `(id, direction)` pairs.
 - Sub-pages with `page_dir` NULL/`inherit` change with their parent without any write (AC-BIDI-005).
 - `CREATE INDEX block_dir_override ON block(page_id) WHERE direction IS NOT NULL;` keeps "apply to all" fast.
+
+## Computed values
+
+- On any command that touches a property value, relation edge, row creation/deletion or property definition, the DB process collects the **dirty set** `(row, property)` and walks `prop_dependency` (following `relation_edge` in reverse for `via_relation`) in topological order, recomputing into `computed_value` inside the same transaction (AC-DB-006).
+- Defining a formula/rollup that would create a cycle is rejected with the cycle path.
+- A property definition change (formula edited, rollup function changed) recomputes that column for all rows in batches of 2,000 inside one transaction; the UI shows progress for > 10k rows.
+- Time-dependent formulas are not materialized; filters/sorts on them are evaluated in the DB process with the compiled closure (registered as a SQLite user function) — slower, documented in the UI.
+- `scripts/verify-computed` recomputes everything from scratch and diffs against `computed_value`; run in CI after property-based tests and at startup in debug builds.
+
+## Backup format (`.lotion`)
+
+A ZIP container (store method for the DB, deflate for JSON):
+
+```
+manifest.json      {format:"lotion-backup", format_version:1, app_version, schema_version,
+                    created_at, source_os, encrypted:false|true, kdf:{argon2id params, salt},
+                    entries:[{path, bytes, sha256}], counts:{pages, blocks, databases, rows, assets}}
+workspace.sqlite   produced by `VACUUM INTO` on a read transaction (consistent snapshot, compacted)
+assets/<sha256>.<ext>
+```
+
+- Encrypted backups wrap each entry with AES-256-GCM (per-entry nonce; key from Argon2id over the passphrase); `manifest.json` stays readable except `counts`.
+- Paths inside are POSIX, no absolute paths, no `..`; import rejects anything else (zip-slip).
+- Import writes to a temp directory, verifies hashes and `integrity_check`, migrates forward if older, then atomically swaps the workspace directory (after backing up the current one).
+- `ui_state` is excluded by default (machine-specific window bounds), included on request.
 
 ## Rich text in `content.text`
 
