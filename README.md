@@ -17,3 +17,8 @@ Planning (Phase 0). No application code yet. Start with:
 7. [docs/06-FORMULA.md](docs/06-FORMULA.md): the formula language
 8. [docs/DECISIONS.md](docs/DECISIONS.md): decision records
 9. [docs/CHECKPOINT.md](docs/CHECKPOINT.md): where work stopped and what comes next
+
+## Languages
+- Arabic
+- English
+- Other 
