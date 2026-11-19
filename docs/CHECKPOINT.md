@@ -4,14 +4,14 @@ Updated at every stopping point so work can resume cold.
 
 ## Current — CP-006 — 2026-11-19
 
-- **State:** T0-01 DONE. T0-02…T0-06 green on Windows + Ubuntu (CI 44548040186, Package 44548040837), each R task awaiting its second review. Dependabot PR #1 (TypeScript 6.0.3) open, unevaluated.
+- **State:** T0-01 DONE. T0-02…T0-06 green on Windows + Ubuntu (CI 44548040186, Package 44548040837), each R task awaiting its second review. TypeScript 6.0.3 adopted (ADR-014a); no open PRs. Session stopped at ~68% daily usage.
 - **Next task:** T0-07 perf harness + synthetic dataset generator, then spikes T0-08…T0-10.
 - **Open owner decisions:** repo visibility (public now; private advised); code-signing certificate (ADR-017).
 - **Resume steps:** README → 04-BUILD-PLAN Phase 0 → LOG.md last entry. Before every push: `pnpm install --frozen-lockfile && pnpm verify`.
 
 ## Previous — CP-005 — 2026-11-19
 
-- **State:** T0-01 DONE. T0-02, T0-03, T0-04 green on Windows + Ubuntu (latest run 44545301741), each awaiting its second review (R). Dependabot PR #1 (TypeScript 6.0.3) open, unevaluated.
+- **State:** T0-01 DONE. T0-02, T0-03, T0-04 green on Windows + Ubuntu (latest run 44545301741), each awaiting its second review (R). TypeScript 6.0.3 adopted (ADR-014a); no open PRs. Session stopped at ~68% daily usage.
 - **Next task:** T0-06 ID checker (small, independent), then T0-05 packaging.
 - **Resume steps:** README → 04-BUILD-PLAN Phase 0 → LOG.md last entry.
 
