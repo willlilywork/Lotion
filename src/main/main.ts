@@ -34,6 +34,10 @@ if (!app.requestSingleInstanceLock()) {
     createWindow();
   });
 
+  app.on('will-quit', () => {
+    if (process.env['LOTION_SMOKE'] === '1') console.log('LOTION_SMOKE will-quit');
+  });
+
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
   });
@@ -59,5 +63,12 @@ function createWindow(): void {
   win.once('ready-to-show', () => {
     win.show();
   });
+  // Launch smoke (CI and packaged-app checks): quit as soon as the renderer has loaded.
+  if (process.env['LOTION_SMOKE'] === '1') {
+    win.webContents.once('did-finish-load', () => {
+      console.log('LOTION_SMOKE ready');
+      app.quit();
+    });
+  }
   void win.loadURL(rendererUrl);
 }
