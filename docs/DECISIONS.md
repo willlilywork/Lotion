@@ -52,3 +52,6 @@ better-sqlite3 13 is built on node-addon-api (N-API) and ships prebuilds per pla
 
 ## ADR-017 — Unsigned installers until 0.1 release — Accepted — 2026-11-19
 electron-builder 26.18 produces NSIS (Windows, per-user, one-click) and deb (Ubuntu, `/opt/Lotion`). Builds are unsigned: Windows SmartScreen will warn. Code signing needs a certificate the owner must buy or obtain; decide before gate G4. `electron-winstaller` (Squirrel) build script is explicitly disallowed in `pnpm-workspace.yaml` because pnpm 12 fails a frozen install on any undeclared build script.
+
+## ADR-014a — TypeScript 6.0.3 — Accepted — 2026-11-19
+Amends ADR-014. typescript-eslint 8.73 peers `typescript <6.1.0`, so 6.0.x is inside its range. Lint, typecheck and tests pass on 6.0.3; adopted on main and Dependabot PR #1 closed as superseded. Stay below 6.1 until typescript-eslint widens its peer range.
