@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
+import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { APP_NAME } from '../shared/app-info.js';
@@ -74,12 +75,28 @@ function createWindow(): void {
   win.once('ready-to-show', () => {
     win.show();
   });
-  // Launch smoke (CI and packaged-app checks): quit as soon as the renderer has loaded.
+  // Launch smoke (CI and installed-app checks): wait for the renderer to reach the DB, then
+  // quit with exit code 0 on success and 2 on failure. Result also goes to LOTION_SMOKE_OUT.
   if (process.env['LOTION_SMOKE'] === '1') {
     win.webContents.once('did-finish-load', () => {
-      console.log('LOTION_SMOKE ready');
-      app.quit();
+      void runSmoke(win);
     });
   }
   void win.loadURL(rendererUrl);
+}
+
+async function runSmoke(win: BrowserWindow): Promise<void> {
+  let status = 'timeout';
+  for (let i = 0; i < 100 && status === 'timeout'; i++) {
+    const db = (await win.webContents.executeJavaScript(
+      'document.body.dataset.db ?? ""',
+    )) as string;
+    if (db === 'ok' || db === 'error') status = db;
+    else await new Promise((r) => setTimeout(r, 100));
+  }
+  const line = `LOTION_SMOKE ready db=${status}`;
+  console.log(line);
+  const out = process.env['LOTION_SMOKE_OUT'];
+  if (out) writeFileSync(out, `${line}\n`);
+  app.exit(status === 'ok' ? 0 : 2);
 }

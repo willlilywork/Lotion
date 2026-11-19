@@ -4,3 +4,4 @@ docs/
 out/
 playwright-report/
 test-results/
+dist/

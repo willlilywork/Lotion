@@ -49,9 +49,9 @@ jobs:
           ELECTRON_ENABLE_LOGGING: '1'
         run: |
           start=$(date +%s)
-          timeout 60 dbus-run-session -- xvfb-run --auto-servernum node_modules/electron/dist/electron out/main/main.cjs | tee smoke.log
+          timeout 60 dbus-run-session -- xvfb-run --auto-servernum "$(node -p "require('electron')")" out/main/main.cjs | tee smoke.log
           echo "quit after $(( $(date +%s) - start ))s"
-          grep -q 'LOTION_SMOKE will-quit' smoke.log
+          grep -q 'LOTION_SMOKE ready db=ok' smoke.log
           if pgrep -f out/main/main.cjs; then echo 'electron left running'; exit 1; fi
       - name: E2E (Linux, virtual display)
         if: runner.os == 'Linux'
