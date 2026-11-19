@@ -35,3 +35,22 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm build
+      - name: Allow Chromium sandbox (Ubuntu 24.04 AppArmor)
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: E2E (Linux, virtual display)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum pnpm e2e
+      - name: E2E (Windows)
+        if: runner.os == 'Windows'
+        run: pnpm e2e
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report-${{ matrix.os }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

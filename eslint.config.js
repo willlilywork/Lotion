@@ -3,7 +3,16 @@ import tseslint from 'typescript-eslint';
 import globals from 'globals';
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'out/**', 'coverage/**', 'node_modules/**'] },
+  {
+    ignores: [
+      'playwright-report/**',
+      'test-results/**',
+      'dist/**',
+      'out/**',
+      'coverage/**',
+      'node_modules/**',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {
@@ -12,5 +21,5 @@ export default tseslint.config(
       parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
     },
   },
-  { files: ['**/*.js'], ...tseslint.configs.disableTypeChecked },
+  { files: ['**/*.js', '**/*.mjs'], ...tseslint.configs.disableTypeChecked },
 );

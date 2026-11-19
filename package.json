@@ -14,16 +14,23 @@
     "format": "prettier --write .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test"
+    "verify": "pnpm lint && pnpm typecheck && pnpm test",
+    "build": "node scripts/build.mjs",
+    "start": "pnpm build && electron .",
+    "e2e": "playwright test"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.65.1",
     "@types/node": "^22.20.5",
+    "electron": "45.4.1",
+    "esbuild": "0.28.2",
     "eslint": "10.15.0",
     "globals": "17.14.0",
     "prettier": "3.10.1",
     "typescript": "5.9.3",
     "typescript-eslint": "8.73.0",
     "vitest": "5.1.1"
-  }
+  },
+  "main": "out/main/main.cjs"
 }
