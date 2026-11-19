@@ -11,6 +11,7 @@ type Probe = {
   id: string;
   budgetMs: number | null;
   write?: boolean;
+  reps?: number;
   run: (db: Database.Database) => unknown;
 };
 
@@ -44,6 +45,20 @@ function largestPage(db: Database.Database): unknown {
 }
 
 export const probes: Probe[] = [
+  {
+    id: 'P-BACKUP db share (VACUUM INTO, no ZIP yet)',
+    budgetMs: 20_000,
+    reps: 3,
+    run: (db) => {
+      const out = join(tmpdir(), `lotion-backup-${String(process.pid)}-${String(seq++)}.sqlite`);
+      db.prepare('VACUUM INTO ?').run(out);
+      const copy = new Database(out, { readonly: true });
+      const ok = copy.pragma('quick_check', { simple: true }) === 'ok' ? 1 : 0; // restore-side check, P-RESTORE share
+      copy.close();
+      rmSync(out);
+      return ok;
+    },
+  },
   {
     id: 'P-SAVE db share (sibling insert in largest page + fts + change_log)',
     budgetMs: 10,
@@ -150,7 +165,7 @@ function main() {
     for (const p of probes) {
       const target = p.write ? wdb : db;
       p.run(target); // warm-up + setup, not timed
-      const r = time(() => p.run(target), smoke ? 3 : 15);
+      const r = time(() => p.run(target), smoke ? 3 : (p.reps ?? 15));
       const over = !smoke && p.budgetMs !== null && r.p50 > p.budgetMs;
       if (over) failed++;
       console.log(
