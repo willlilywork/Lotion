@@ -40,3 +40,6 @@ Decision: Lotion Formula (06-FORMULA), spreadsheet-style, typed, sandboxed (no J
 
 ## ADR-013 — Portable backup container `.lotion` — Accepted — 2026-11-19
 Decision: ZIP with manifest + `VACUUM INTO` snapshot + content-addressed assets, per-entry SHA-256, optional AES-256-GCM/Argon2id. Consequence: cross-OS round-trip CI job is a release gate.
+
+## ADR-014 — Toolchain versions at T0-01 — Accepted — 2026-11-19
+Node 22 LTS, pnpm 12.21.0 (pinned via `packageManager`), TypeScript 5.9.3 (TypeScript 7 is out but typescript-eslint 8.73 supports `<6.1`), ESLint 10 with typescript-eslint strict type-checked rules, Vitest 5, Prettier 3. Upgrade TypeScript when typescript-eslint supports 7.x.
