@@ -12,7 +12,8 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node"],
+    "erasableSyntaxOnly": true
   },
   "include": ["src", "tests", "scripts", "*.config.ts"]
 }

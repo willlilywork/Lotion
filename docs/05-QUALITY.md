@@ -30,7 +30,8 @@ Measured on CI runners (2-4 vCPU) against the reference dataset from `scripts/ge
 ## Traceability
 
 - `docs/01-PRODUCT-SPEC.md` is the only place AC IDs are defined.
-- `pnpm check-ids` fails on: duplicate ID, ID without test, test tag without ID, AC without FT.
+- `pnpm check-ids` (every CI run) fails on: duplicate ID, AC outside its own FT section, AC without a release tag, test tag naming no AC, any doc referencing an undefined AC.
+- `pnpm check-ids --release 0.1` additionally fails on any AC of that release without a test tagged `@AC-…`. It is part of gate G4 (release), not of every push, because ACs gain tests phase by phase.
 - `docs/LOG.md` is append-only: `LOG-NNNN | date (UTC) | task | commit | CI run URL | result`.
 - CI artifacts kept 90 days; release evidence attached to the GitHub Release (permanent).
 

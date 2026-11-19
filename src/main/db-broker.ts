@@ -10,7 +10,11 @@ import { IPC_DB_PORT } from '../shared/ipc.js';
 export class DbBroker {
   private child: UtilityProcess | undefined;
 
-  constructor(private readonly hostPath: string) {}
+  private readonly hostPath: string;
+
+  constructor(hostPath: string) {
+    this.hostPath = hostPath;
+  }
 
   start(): void {
     this.child = utilityProcess.fork(this.hostPath, [], {

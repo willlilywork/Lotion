@@ -14,10 +14,11 @@
     "format": "prettier --write .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm check-ids",
     "build": "node scripts/build.mjs",
     "start": "pnpm build && electron .",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "check-ids": "node scripts/check-ids.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

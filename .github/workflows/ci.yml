@@ -35,6 +35,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm check-ids
       - run: pnpm build
       - name: Fetch Electron binary
         run: node -e "require('electron')"
