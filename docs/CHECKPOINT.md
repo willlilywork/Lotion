@@ -2,7 +2,13 @@
 
 Updated at every stopping point so work can resume cold.
 
-## Current — CP-004 — 2026-11-19
+## Current — CP-005 — 2026-11-19
+
+- **State:** T0-01 DONE. T0-02, T0-03, T0-04 green on Windows + Ubuntu (latest run 44545301741), each awaiting its second review (R). Dependabot PR #1 (TypeScript 6.0.3) open, unevaluated.
+- **Next task:** T0-06 ID checker (small, independent), then T0-05 packaging.
+- **Resume steps:** README → 04-BUILD-PLAN Phase 0 → LOG.md last entry.
+
+## Previous — CP-004 — 2026-11-19
 
 - **State:** T0-01 DONE. T0-02, T0-03 green on Windows + Ubuntu (run 44544245891), each awaiting its second review (R). Dependabot PR #2 closed; #1 (TypeScript 6.0.3) open, unevaluated.
 - **Next task:** T0-04 `utilityProcess` DB host + MessagePort broker + zod-validated `ping`.
