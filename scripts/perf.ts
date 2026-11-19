@@ -7,7 +7,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { generate, SCALES } from './gen-dataset.ts';
 
-type Probe = { id: string; budgetMs: number | null; run: (db: Database.Database) => unknown };
+type Probe = {
+  id: string;
+  budgetMs: number | null;
+  write?: boolean;
+  run: (db: Database.Database) => unknown;
+};
 
 function time<T>(fn: () => T, reps: number): { p50: number; max: number; out: T } {
   const xs: number[] = [];
@@ -22,6 +27,7 @@ function time<T>(fn: () => T, reps: number): { p50: number; max: number; out: T 
 }
 
 // Setup lookups are cached so they never count against a probe's time.
+let seq = 0;
 const memo = new WeakMap<Database.Database, unknown>();
 function largestPage(db: Database.Database): unknown {
   if (!memo.has(db))
@@ -38,6 +44,53 @@ function largestPage(db: Database.Database): unknown {
 }
 
 export const probes: Probe[] = [
+  {
+    id: 'P-SAVE db share (sibling insert in largest page + fts + change_log)',
+    budgetMs: 10,
+    write: true,
+    run: (db) => {
+      const pg = largestPage(db) as string;
+      const [left, right] = db
+        .prepare(
+          `SELECT sort_key FROM block WHERE parent_id=@p AND id NOT LIKE 'perf%' ORDER BY sort_key LIMIT 2 OFFSET (SELECT count(*) / 2 FROM block WHERE parent_id=@p)`,
+        )
+        .pluck()
+        .all({ p: pg }) as string[];
+      if (!left || !right) return 0;
+      // between left and right: same prefix + midpoint char (real algorithm is T1-02)
+      const sk = left + 'V' + String(seq++);
+      const id = 'perf' + String(seq);
+      const now = Date.now();
+      db.transaction(() => {
+        db.prepare(
+          `INSERT INTO block (id,type,parent_id,page_id,sort_key,content,plain_text,created_at,updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?)`,
+        ).run(id, 'paragraph', pg, pg, sk, '{"text":[{"t":"مرحبا"}]}', 'مرحبا', now, now);
+        db.prepare('INSERT INTO fts (block_id,page_id,text) VALUES (?,?,?)').run(id, pg, 'مرحبا');
+        db.prepare('INSERT INTO change_log (at,client_op_id,command,payload) VALUES (?,?,?,?)').run(
+          now,
+          id,
+          'block.insert',
+          JSON.stringify({ id, parent: pg, sk }),
+        );
+      })();
+      return sk > left && sk < right ? 1 : 0;
+    },
+  },
+  {
+    id: 'P-SEARCH (FTS prefix, English, first 20)',
+    budgetMs: 100,
+    run: (db) =>
+      db.prepare(`SELECT block_id FROM fts WHERE fts MATCH ? LIMIT 20`).all('budg*').length,
+  },
+  {
+    id: 'P-SEARCH (FTS phrase, Arabic, ranked, first 20)',
+    budgetMs: 100,
+    run: (db) =>
+      db
+        .prepare(`SELECT block_id FROM fts WHERE fts MATCH ? ORDER BY rank LIMIT 20`)
+        .all('"ملاحظات تصميم"').length,
+  },
   {
     id: 'page-load (largest page, all blocks ordered)',
     budgetMs: null, // P-PAGE is a paint budget; DB share recorded in T0-08
@@ -90,9 +143,14 @@ function main() {
     );
     const db = new Database(file, { readonly: true });
     let failed = 0;
+    const wdb = new Database(file);
+    wdb.pragma('journal_mode = WAL');
+    wdb.pragma('synchronous = NORMAL');
+    wdb.pragma('foreign_keys = ON');
     for (const p of probes) {
-      p.run(db); // warm-up + setup, not timed
-      const r = time(() => p.run(db), smoke ? 3 : 15);
+      const target = p.write ? wdb : db;
+      p.run(target); // warm-up + setup, not timed
+      const r = time(() => p.run(target), smoke ? 3 : 15);
       const over = !smoke && p.budgetMs !== null && r.p50 > p.budgetMs;
       if (over) failed++;
       console.log(
@@ -105,6 +163,7 @@ function main() {
       }
     }
     db.close();
+    wdb.close();
     process.exitCode = failed ? 1 : 0;
   } finally {
     rmSync(dir, { recursive: true, force: true });

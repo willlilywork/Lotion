@@ -5,7 +5,8 @@ Updated at every stopping point so work can resume cold.
 ## Current — CP-007 — 2026-11-19
 
 - **State:** T0-01 DONE; T0-02…T0-07 green on Windows + Ubuntu, R tasks awaiting second review. TypeScript 6.0.3 (ADR-014a).
-- **Next task:** T0-08 Spike A: add probes to `scripts/perf.ts` for sibling insert (fractional key between two siblings + change_log row) and FTS phrase/prefix queries; run `pnpm perf` full; record numbers vs 05 budgets in LOG. Baseline in LOG-0010. Then T0-09 (rollups/formulas, `computed_value`, dirty-set recompute) and T0-10 (backup round-trip).
+- **Done since:** T0-08 Spike A (LOG-0011): schema meets budgets at 1M blocks.
+- **Next task:** T0-09 (rollups/formulas, `computed_value`, dirty-set recompute) and T0-10 (backup round-trip).
 - **Open owner decisions:** repo visibility (public; private advised); code-signing certificate (ADR-017).
 - **Resume:** README → 04-BUILD-PLAN Phase 0 → LOG last entry. Before every push: `pnpm install --frozen-lockfile && pnpm verify && pnpm perf --smoke`.
 
