@@ -41,16 +41,17 @@ jobs:
       - name: Allow Chromium sandbox (Ubuntu 24.04 AppArmor)
         if: runner.os == 'Linux'
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      - name: Launch smoke (Linux, diagnostic)
+      - name: Launch smoke (Linux)
         if: runner.os == 'Linux'
-        continue-on-error: true
         env:
           LOTION_SMOKE: '1'
           ELECTRON_ENABLE_LOGGING: '1'
         run: |
           start=$(date +%s)
-          timeout 60 dbus-run-session -- xvfb-run --auto-servernum node_modules/electron/dist/electron out/main/main.cjs; echo "exit=$? after $(( $(date +%s) - start ))s"
-          ps -eo pid,ppid,etimes,cmd | grep -i [e]lectron || echo "no electron processes left"
+          timeout 60 dbus-run-session -- xvfb-run --auto-servernum node_modules/electron/dist/electron out/main/main.cjs | tee smoke.log
+          echo "quit after $(( $(date +%s) - start ))s"
+          grep -q 'LOTION_SMOKE will-quit' smoke.log
+          if pgrep -f out/main/main.cjs; then echo 'electron left running'; exit 1; fi
       - name: E2E (Linux, virtual display)
         if: runner.os == 'Linux'
         run: dbus-run-session -- xvfb-run --auto-servernum pnpm e2e

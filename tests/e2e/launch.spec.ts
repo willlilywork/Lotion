@@ -80,8 +80,10 @@ test('launch: navigation away from the app is blocked', async () => {
   expect(page.url()).toBe(before);
 });
 
+// about:blank, not an http URL: http(s) is handed to the OS browser (xdg-open on Linux),
+// which a test must not trigger.
 test('launch: window.open creates no window', async () => {
-  const opened = await page.evaluate(() => window.open('https://example.com/') === null);
+  const opened = await page.evaluate(() => window.open('about:blank') === null);
   expect(opened).toBe(true);
   expect(app.windows()).toHaveLength(1);
 });
