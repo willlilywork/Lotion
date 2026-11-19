@@ -2,7 +2,13 @@
 
 Updated at every stopping point so work can resume cold.
 
-## Current — CP-002 — 2026-11-19
+## Current — CP-003 — 2026-11-19
+
+- **State:** T0-01 DONE; T0-02 CI green on Windows + Ubuntu (run 44540499990), awaiting its second review (R). Dependabot active; open PRs #1 (TypeScript 6.0.3, within typescript-eslint range — evaluate) and #2 (@types/node 26, now ignored for majors — close).
+- **Next task:** T0-03 Electron shell (sandboxed renderer, preload bridge, CSP, navigation lock) with an E2E launch test via Playwright `_electron`.
+- **Resume steps:** README → 04-BUILD-PLAN Phase 0 → LOG.md last entry.
+
+## Previous — CP-002 — 2026-11-19
 
 - **State:** plan re-centred on advanced databases (ADR-010…013): full property set incl. relation/rollup/formula/unique ID, six views, linked views, templates, sub-items, calculations; formula language spec (06-FORMULA); computed-value engine; DataBackup.lotion format with cross-OS round-trip. Build plan now Phases 0–5 with spikes T0-08…T0-10.
 - **Next task:** T0-01 scaffold.
