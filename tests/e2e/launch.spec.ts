@@ -48,7 +48,11 @@ test('launch: renderer has no Node access', async () => {
     process: typeof (globalThis as Record<string, unknown>)['process'],
     bridgeKeys: Object.keys(window.lotion),
   }));
-  expect(globals).toEqual({ require: 'undefined', process: 'undefined', bridgeKeys: ['appInfo'] });
+  expect(globals).toEqual({
+    require: 'undefined',
+    process: 'undefined',
+    bridgeKeys: ['appInfo', 'db'],
+  });
 });
 
 test('launch: CSP blocks inline script and string-eval', async () => {
@@ -103,4 +107,40 @@ test('launch: sandbox and isolation are on', async () => {
       : null;
   });
   expect(prefs).toEqual({ sandbox: true, contextIsolation: true, nodeIntegration: false });
+});
+
+test('db ping: round trip to the DB process over a direct port', async () => {
+  const out = await page.evaluate(() => window.lotion.db('ping', { nonce: 'سلام-1' }));
+  expect(out.ok).toBe(true);
+  const res = (out as { result: { pong: string; sqliteVersion: string; pid: number } }).result;
+  const mainPid = await app.evaluate(() => process.pid);
+  const rendererPid = await app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0]?.webContents.getOSProcessId(),
+  );
+  expect(res.pong).toBe('سلام-1');
+  expect(res.sqliteVersion).toMatch(/^3\.\d+\.\d+$/);
+  expect(res.pid).not.toBe(mainPid);
+  expect(res.pid).not.toBe(rendererPid);
+});
+
+test('db ping: invalid args and unknown commands are rejected by the DB side', async () => {
+  const codes = await page.evaluate(async () => {
+    const code = async (p: ReturnType<typeof window.lotion.db>) => {
+      const out = await p;
+      return out.ok ? 'resolved' : out.error.code;
+    };
+    return [
+      await code(window.lotion.db('ping', { nonce: '' })),
+      await code(window.lotion.db('ping', { nonce: 'x', extra: 1 })),
+      await code(window.lotion.db('dropEverything', {})),
+    ];
+  });
+  expect(codes).toEqual(['INVALID_ARGS', 'INVALID_ARGS', 'UNKNOWN_COMMAND']);
+});
+
+test('db ping: a reload gets a working port', async () => {
+  await page.reload();
+  await page.waitForSelector('body[data-ready="true"]');
+  const out = await page.evaluate(() => window.lotion.db('ping', { nonce: 'after-reload' }));
+  expect(out).toMatchObject({ ok: true, result: { pong: 'after-reload' } });
 });

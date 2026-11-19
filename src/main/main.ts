@@ -2,8 +2,11 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { APP_NAME } from '../shared/app-info.js';
-import { IPC_APP_INFO, type AppInfo } from '../shared/ipc.js';
+import { IPC_APP_INFO, IPC_DB_CONNECT, type AppInfo } from '../shared/ipc.js';
 import { hardenDefaultSession, installSecurity } from './security.js';
+import { DbBroker } from './db-broker.js';
+
+const db = new DbBroker(path.join(__dirname, '..', 'db', 'host.cjs'));
 
 const rendererFile = path.join(__dirname, '..', 'renderer', 'index.html');
 const rendererUrl = pathToFileURL(rendererFile).toString();
@@ -29,12 +32,20 @@ if (!app.requestSingleInstanceLock()) {
     return { name: APP_NAME, version: app.getVersion(), platform: process.platform };
   });
 
+  // Each document load asks once; a reload gets a fresh port and the old one dies with its page.
+  ipcMain.on(IPC_DB_CONNECT, (event) => {
+    if (event.senderFrame?.url !== rendererUrl) return;
+    db.connect(event.sender);
+  });
+
   void app.whenReady().then(() => {
     hardenDefaultSession();
+    db.start();
     createWindow();
   });
 
   app.on('will-quit', () => {
+    db.stop();
     if (process.env['LOTION_SMOKE'] === '1') console.log('LOTION_SMOKE will-quit');
   });
 

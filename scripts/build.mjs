@@ -16,6 +16,14 @@ await Promise.all([
   }),
   build({
     ...common,
+    entryPoints: ['src/db/host.ts'],
+    outfile: 'out/db/host.cjs',
+    platform: 'node',
+    format: 'cjs',
+    external: ['electron', 'better-sqlite3'],
+  }),
+  build({
+    ...common,
     entryPoints: ['src/preload/preload.ts'],
     outfile: 'out/preload/preload.cjs',
     platform: 'node',
