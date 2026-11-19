@@ -186,7 +186,9 @@ Lotion exists to give a local, offline workspace a database layer at least as ca
 | Page direction menu | Ctrl+Shift+D | page |
 | Settings | Ctrl+, | global |
 
-AC-KB-001 (0.1): keymap uniqueness test passes and every chord above is covered by an E2E smoke test.
+| ID | Requirement | Oracle | Rel |
+|---|---|---|---|
+| AC-KB-001 | No chord is bound twice in the same context, no `Ctrl+Alt+<printable>` or `Ctrl+Alt+Arrow` bindings exist, and every chord above has an E2E smoke test. | Keymap unit test + E2E. | 0.1 |
 
 ## FT-A11Y — Accessibility
 
