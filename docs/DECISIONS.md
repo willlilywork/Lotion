@@ -49,3 +49,6 @@ esbuild bundles main and preload as CommonJS (sandboxed preloads cannot be ESM) 
 
 ## ADR-016 — DB channel details — Accepted — 2026-11-19
 better-sqlite3 13 is built on node-addon-api (N-API) and ships prebuilds per platform, so the same binary loads in Node (unit tests) and Electron 45; no electron-rebuild step. The preload asks main for a port (`lotion:db-connect`) only after its listener exists, so the port cannot arrive unheard, and each document load gets a fresh port. The port never leaves the preload; the page gets `lotion.db(cmd, args)`, which resolves to `{ok, result} | {ok:false, error:{code,message}}` instead of rejecting, because Error fields are stripped when crossing the context bridge. Command names are looked up with `Object.hasOwn`, so `__proto__`, `constructor` and similar never dispatch.
+
+## ADR-017 — Unsigned installers until 0.1 release — Accepted — 2026-11-19
+electron-builder 26.18 produces NSIS (Windows, per-user, one-click) and deb (Ubuntu, `/opt/Lotion`). Builds are unsigned: Windows SmartScreen will warn. Code signing needs a certificate the owner must buy or obtain; decide before gate G4. `electron-winstaller` (Squirrel) build script is explicitly disallowed in `pnpm-workspace.yaml` because pnpm 12 fails a frozen install on any undeclared build script.
