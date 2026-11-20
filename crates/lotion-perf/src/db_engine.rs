@@ -601,6 +601,9 @@ mod tests {
         assert_eq!(n, s.hub_dependents);
         assert_eq!(s.engine.verify(&conn).unwrap(), 0);
         assert!(s.view(&conn).unwrap() > 0);
-        std::fs::remove_dir_all(&dir).unwrap();
+        drop(s);
+        drop(conn);
+        // Windows keeps the file locked while a connection is open.
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
