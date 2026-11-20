@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/lotion-core", "crates/lotion-app"]
+members = ["crates/lotion-core", "crates/lotion-app", "crates/lotion-perf"]
 
 [workspace.package]
 version = "0.0.1"

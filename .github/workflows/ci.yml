@@ -37,6 +37,8 @@ jobs:
       - run: cargo clippy --all-targets --locked -- -D warnings
       - run: cargo test --locked
       - run: cargo build -p lotion-app --locked
+      - name: Perf harness smoke (lotion-perf)
+        run: cargo run -p lotion-perf --release --locked -- --smoke
       - name: Tauri launch smoke (Linux)
         if: runner.os == 'Linux'
         env:

@@ -2,7 +2,14 @@
 
 Updated at every stopping point so work can resume cold.
 
-## Current — CP-011 — 2026-11-20
+## Current — CP-012 — 2026-11-20
+
+- **State:** Phase 0R: T0-R1, T0-R2, T0-R4, T0-R5, T0-R6 done. T0-R3 done except WebDriver E2E. Spike A re-recorded on Rust (LOG-0019): all budgets met.
+- **Next task:** T0-R7 Spike B (computed values at 10k rows, dirty-set recompute of 1,000 dependents) in `crates/lotion-perf/src/db_engine.rs`; then T0-R3 E2E; T0-R8 Spike C + Electron removal.
+- **Open owner decisions:** license (MIT or AGPL-3.0); code-signing certificate (ADR-017).
+- **Resume:** as CP-010. `cargo run -p lotion-perf --release -- --smoke` (full run without `--smoke`, ~1 min).
+
+## Previous — CP-011 — 2026-11-20
 
 - **State:** Phase 0R: T0-R1, T0-R2, T0-R4, T0-R5 done (CI 44830637760 + Package 44830637869 green on Windows + Ubuntu at eabbd8b). T0-R3 done except WebDriver E2E via tauri-driver.
 - **Next task:** T0-R6 port dataset generator + perf harness to Rust (`lotion-perf`), then T0-R3 E2E, T0-R7 Spike B, T0-R8 Spike C + Electron removal.
