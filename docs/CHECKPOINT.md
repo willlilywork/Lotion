@@ -2,7 +2,15 @@
 
 Updated at every stopping point so work can resume cold.
 
-## Current — CP-013 — 2026-11-20
+## Current — CP-014 — 2026-11-20
+
+- **State:** Phase 0R: T0-R1, R2, R4, R5, R6, R7 done; T0-R8 first half done (Spike C backup/restore, LOG-0021; cross-OS `backup-roundtrip` CI job added, first run to be confirmed). T0-R3 done except WebDriver E2E.
+- **Next task:** confirm CI for the Spike C commit (rust, backup-roundtrip, verify, Package on both OSes); then T0-R8 second half: remove the Electron scaffold and pnpm toolchain except `check-ids`; then T0-R3 E2E via tauri-driver → G0.
+- **Stopped because:** daily Hark usage near the 96% limit.
+- **Open owner decisions:** license (MIT or AGPL-3.0); code-signing certificate (ADR-017).
+- **Resume:** as CP-012. Sandbox /tmp is ~6 GB: delete `/tmp/lotion-target/debug` before a full perf run.
+
+## Previous — CP-013 — 2026-11-20
 
 - **State:** Phase 0R: T0-R1, T0-R2, T0-R4, T0-R5, T0-R6, T0-R7 done (Spike B: P-DBVIEW 63 ms, P-RECOMP 27 ms, LOG-0020). T0-R3 done except WebDriver E2E. Remaining for G0: T0-R3 E2E, T0-R8.
 - **Next task:** T0-R8 Spike C (ZIP + manifest backup/restore, Windows→Ubuntu CI round-trip, canonical dump equality), then remove the Electron scaffold; T0-R3 E2E via tauri-driver.

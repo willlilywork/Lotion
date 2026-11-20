@@ -1,6 +1,7 @@
 //! Lotion core: one SQLite workspace file, opened with the schema from
 //! `docs/03-DATA-MODEL.md` (ADR-018: the core is Rust).
 
+pub mod backup;
 pub mod host;
 
 use rusqlite::Connection;

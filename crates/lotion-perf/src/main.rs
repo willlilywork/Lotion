@@ -231,6 +231,7 @@ fn run_probes(file: &Path, tmp: &Path, smoke: bool) -> Res<usize> {
         }
     }
     failed += spike_b(&ro, &rw, smoke)?;
+    failed += spike_c(&rw, tmp, smoke)?;
     Ok(failed)
 }
 
@@ -338,6 +339,12 @@ fn main() -> ExitCode {
             }
         };
     }
+    if let Some(out) = arg_after(&args, "--backup-smoke") {
+        return exit(backup_smoke(Path::new(&out), seed));
+    }
+    if let Some(file) = arg_after(&args, "--restore-check") {
+        return exit(restore_check(Path::new(&file)));
+    }
     let smoke = args.iter().any(|a| a == "--smoke");
     let tmp = std::env::temp_dir().join(format!("lotion-perf-{}", std::process::id()));
     let result = (|| -> Res<usize> {
@@ -366,4 +373,105 @@ fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+/// T0-R8 Spike C: `.lotion` backup (VACUUM INTO + ZIP + manifest) and restore of the dataset,
+/// then canonical dump equality between the live file and the restored copy.
+fn spike_c(rw: &Connection, tmp: &Path, smoke: bool) -> Res<usize> {
+    use lotion_core::backup;
+    let reps = if smoke { 1 } else { 3 };
+    let (mut xb, mut xr) = (Vec::new(), Vec::new());
+    let mut last = PathBuf::new();
+    for i in 0..reps {
+        let file = tmp.join(format!("DataBackup-{i}.lotion"));
+        let dest = tmp.join(format!("restored-{i}.sqlite"));
+        let t = Instant::now();
+        backup::backup(rw, &file, 0)?;
+        xb.push(t.elapsed().as_secs_f64() * 1000.0);
+        let t = Instant::now();
+        backup::restore(&file, &dest)?;
+        xr.push(t.elapsed().as_secs_f64() * 1000.0);
+        std::fs::remove_file(&file)?;
+        if i + 1 < reps {
+            std::fs::remove_file(&dest)?;
+        } else {
+            last = dest;
+        }
+    }
+    let (a, n) = backup::canonical_dump_hash(rw)?;
+    let (b, _) = backup::canonical_dump_hash(&Connection::open(&last)?)?;
+    let equal = usize::from(a == b);
+    let mut failed = report(
+        "P-BACKUP (.lotion: VACUUM INTO + manifest + ZIP)",
+        Some(20_000.0),
+        xb,
+        equal,
+        smoke,
+    );
+    failed += report(
+        "P-RESTORE (unzip + sha256 + integrity_check + open)",
+        Some(30_000.0),
+        xr,
+        equal,
+        smoke,
+    );
+    println!("canonical dump: {n} rows, live == restored: {}", a == b);
+    if a != b {
+        failed += 1;
+    }
+    Ok(failed)
+}
+
+fn exit(r: Res<()>) -> ExitCode {
+    match r {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("failed: {e}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+/// Cross-OS round-trip, producer side: smoke dataset -> `<out>` plus `<out>.dump-sha256`.
+fn backup_smoke(out: &Path, seed: u32) -> Res<()> {
+    let tmp = std::env::temp_dir().join(format!("lotion-bks-{}", std::process::id()));
+    std::fs::create_dir_all(&tmp)?;
+    let src = tmp.join("src.sqlite");
+    dataset::generate(&src, dataset::SMOKE, seed)?;
+    let conn = Connection::open(&src)?;
+    let m = lotion_core::backup::backup(&conn, out, 0)?;
+    let (hash, rows) = lotion_core::backup::canonical_dump_hash(&conn)?;
+    std::fs::write(
+        PathBuf::from(format!("{}.dump-sha256", out.display())),
+        &hash,
+    )?;
+    println!(
+        "backup {} from {}: {rows} rows, dump {hash}",
+        out.display(),
+        m.source_os
+    );
+    drop(conn);
+    let _ = std::fs::remove_dir_all(&tmp);
+    Ok(())
+}
+
+/// Consumer side: restore `<file>` and compare with `<file>.dump-sha256`.
+fn restore_check(file: &Path) -> Res<()> {
+    let want = std::fs::read_to_string(format!("{}.dump-sha256", file.display()))?;
+    let tmp = std::env::temp_dir().join(format!("lotion-rc-{}", std::process::id()));
+    std::fs::create_dir_all(&tmp)?;
+    let dest = tmp.join("restored.sqlite");
+    let m = lotion_core::backup::restore(file, &dest)?;
+    let (got, rows) = lotion_core::backup::canonical_dump_hash(&Connection::open(&dest)?)?;
+    let _ = std::fs::remove_dir_all(&tmp);
+    println!(
+        "restored backup made on {} ({rows} rows) on {}",
+        m.source_os,
+        std::env::consts::OS
+    );
+    if got.trim() != want.trim() {
+        return Err(format!("canonical dump differs: {got} != {}", want.trim()).into());
+    }
+    println!("canonical dump equal: {got}");
+    Ok(())
 }
