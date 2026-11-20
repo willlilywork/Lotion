@@ -7,9 +7,22 @@
 - Review is **risk-tiered**: tasks marked `R` (security boundary, data loss, migrations, packaging) get a second review pass (a separate reviewer session) before `DONE`; others are self-verified by CI. No single gate blocks the whole plan.
 - Databases are the product's reason to exist, so the database engine (Phase 3) starts right after storage (G1), in parallel with the editor, and its scale is proven in Phase 0 (T0-09) before anything is frozen.
 
-> **2026-11-20 (ADR-018):** the stack moves to Rust (Tauri 2 proposed). Next task is **T0-R1: re-plan Phase 0 onto Rust** (Cargo workspace, CI matrix, Tauri shell, rusqlite DB host, packaging as `.exe` + `.deb`), keeping spike budgets and results. T0-09 and the rest of T0-10 run on the Rust core once T0-R1 is accepted. Rows below describe the Electron scaffold as built.
+## Phase 0R — Foundations on Rust (ADR-018; gate G0 moves here)
 
-## Phase 0 — Foundations (gate G0: CI green, packaging proven)
+Phase 0 below was built on Electron + TypeScript and proved CI, packaging, the schema at 1M blocks (T0-08) and `VACUUM INTO` (T0-10 partial). Phase 0R rebuilds the foundations on a Rust core with a Tauri 2 shell; the UI stays web technology inside the system webview (Arabic shaping, bidi, IME per ADR-009). Spike numbers and budgets carry over. Gate G0 = T0-R1…T0-R8 DONE.
+
+| ID | Task | Paths | Verify | Size |
+|---|---|---|---|---|
+| T0-R1 | Re-plan: this table, 02-ARCHITECTURE for Rust/Tauri, ADR-019 stack | `docs/*` | review | S |
+| T0-R2 | Cargo workspace + `lotion-core` crate: rusqlite (bundled, FTS5), schema v1 generated from 03 and checked against it, `ping`, UUIDv7 ids; CI job `rust` (fmt, clippy `-D warnings`, test) on win/ubuntu | `Cargo.toml`, `crates/lotion-core/*`, `.github/workflows/ci.yml` | `cargo test` + CI green | S |
+| T0-R3 | Tauri 2 shell: window, locked capabilities (only Lotion commands), CSP, navigation lock, `ping` through `invoke`; launch E2E (WebDriver via `tauri-driver`) | `crates/lotion-app/*`, `ui/*` | e2e "launch", "db ping" | M R |
+| T0-R4 | Core runs off the UI thread: one DB worker thread owns the connection, commands over a channel, typed (serde) command/response enum with validation | `crates/lotion-core/src/host.rs` | unit + e2e "db ping" | M R |
+| T0-R5 | Packaging with the Tauri bundler: NSIS `.exe` + `.deb`; CI installs, launches (smoke reaches SQLite), uninstalls | `crates/lotion-app/tauri.conf.json`, `.github/workflows/package.yml` | package job green | M R |
+| T0-R6 | Port dataset generator + perf harness to Rust (`lotion-perf` binary, smoke/full); re-record Spike A numbers | `crates/lotion-perf/*` | `cargo run -p lotion-perf -- --smoke` | M |
+| T0-R7 | Spike B on Rust (was T0-09): computed values at 10k rows, dirty-set recompute of 1,000 dependents | `crates/lotion-perf/src/db_engine.rs` | P-DBVIEW, P-RECOMP | M |
+| T0-R8 | Spike C on Rust (rest of T0-10): ZIP + manifest backup/restore, Windows→Ubuntu round-trip in CI, canonical dump equality; then remove the Electron scaffold and pnpm toolchain except `check-ids` | `crates/lotion-core/src/backup.rs`, CI | P-BACKUP, P-RESTORE | M R |
+
+## Phase 0 — Foundations on Electron (superseded by Phase 0R; kept as record)
 
 | ID | Task | Paths | Verify | Size |
 |---|---|---|---|---|
@@ -113,7 +126,7 @@
 
 | Gate | Opens | Condition |
 |---|---|---|
-| G0 | Phase 1 | T0-01…T0-10 DONE; spike numbers recorded |
+| G0 | Phase 1 | T0-R1…T0-R8 DONE (Phase 0R); spike numbers recorded |
 | G1 | Phase 2 & Phase 3 (in parallel) | Phase 1 DONE; migration fixture committed |
 | G2 | daily note-taking | Phase 2 DONE |
 | G3 | Phase 4 | G2 + Phase 3 DONE |

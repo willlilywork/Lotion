@@ -1,81 +1,84 @@
 # 02 — Architecture
 
-> **Superseded in part (ADR-018, 2026-11-20):** the core moves to Rust and the shell to Tauri 2 (proposed). This file is rewritten in T0-R1; the table below records the Electron scaffold as built.
+Rust core, Tauri 2 shell, web UI in the system webview (ADR-018, ADR-019). The Electron scaffold of Phase 0 is kept until T0-R8 as a record and is described at the end.
 
 ## Stack (pinned in DECISIONS)
 
 | Layer | Choice | Why |
 |---|---|---|
-| Shell | Electron (current stable at bootstrap, pinned exact) | Same Chromium on Win/Linux → one bidi/IME behavior to test |
-| Language | TypeScript strict, ESM | One language end to end |
-| UI | React 19 + Vite | Mature, virtualization libs, testing ecosystem |
-| Editor | ProseMirror, **one EditorView per page**, our own schema | Bidi/IME handled by contenteditable in Chromium; full control of commands; cross-block selection is native |
-| Database | SQLite via `better-sqlite3`, WAL, FTS5 | Synchronous, fast, one file |
-| DB host | Electron `utilityProcess` | Crash isolation from main; no blocking of main event loop; native module loaded once |
-| Virtualization | `@tanstack/react-virtual` | Long pages and DB views |
-| Tests | Vitest (unit), Playwright `_electron` (E2E) | Both run headless in CI |
-| Packaging | electron-builder: NSIS `.exe`, `.deb` | Required targets |
+| Core language | Rust (toolchain pinned in `rust-toolchain.toml`), `unsafe_code = forbid`, clippy deny | Owner's direction; one fast, safe core for storage, databases, formulas and backup |
+| Shell | Tauri 2 | Rust host, small installers, system webview (WebView2 on Windows, WebKitGTK on Linux) |
+| Database | SQLite via `rusqlite` (`bundled`, FTS5), WAL | Same SQLite version on every OS; schema unchanged from 03 |
+| UI | TypeScript + React 19 in the webview; ProseMirror, one EditorView per page | Interface and shortcut parity with Notion (00-CHARTER); mature Arabic shaping, bidi and IME in the browser engine (ADR-009) |
+| IPC | Tauri `invoke` with one command entry point; serde-typed command enum, validated in Rust | Narrow, typed boundary; no raw filesystem or shell access from the UI |
+| Tests | `cargo test` (core), Vitest (UI units), WebDriver via `tauri-driver` (E2E) | All headless in CI on Windows and Ubuntu |
+| Packaging | Tauri bundler: NSIS `.exe`, `.deb` | Required targets |
 
-## Processes
+## Processes and threads
 
 ```
-┌──────────── main process ────────────┐
-│ windows, menus, dialogs, file I/O     │
-│ brokers MessagePorts, no DB access    │
-└──────┬─────────────────────┬─────────┘
-       │ MessagePort          │ MessagePort
-┌──────▼──────┐        ┌──────▼─────────────┐
-│ renderer(s) │◄──────►│ utilityProcess: db  │
-│ React + PM  │  port  │ better-sqlite3, FTS │
-│ sandboxed   │        │ command handlers    │
-└─────────────┘        └────────────────────┘
+┌──────────────── lotion-app (one process) ────────────────┐
+│ main thread: Tauri event loop, windows, menus, dialogs    │
+│   invoke("cmd", {...}) ─► validate ─► channel             │
+│ DB worker thread: owns the only rusqlite Connection       │
+│   commands, queries, FTS, computed values, undo, backup   │
+└──────────────▲────────────────────────────────────────────┘
+               │ invoke / events
+┌──────────────┴──────────────┐
+│ webview: UI (React + PM)    │
+│ CSP, no remote content      │
+└─────────────────────────────┘
 ```
 
-- Renderer: `sandbox: true`, `contextIsolation: true`, `nodeIntegration: false`, strict CSP (`default-src 'self'; img-src 'self' lotion-asset: data:`), no remote content, navigation and `window.open` denied.
-- Preload exposes exactly one typed API: `lotion.request(cmd)`, `lotion.subscribe(topic)`. No raw `ipcRenderer`.
-- The renderer talks to the DB process over a direct `MessagePort` (main only brokers). Messages are validated with zod schemas on the DB side.
-- Assets (images) live in `<workspace>/assets/<sha256>.<ext>` and are served through a custom `lotion-asset:` protocol that only resolves hashes, never paths.
+- One DB worker thread owns the connection; the UI thread never blocks on SQLite. A panic in the worker is caught, the worker restarts once, and the UI replays unacknowledged commands by `clientOpId` (idempotent).
+- Capabilities: the webview may call only Lotion's own commands; no `fs`, `shell` or `http` plugins. Strict CSP (`default-src 'self'; img-src 'self' lotion-asset: data:`), navigation and new windows denied.
+- Assets live in `<workspace>/assets/<sha256>.<ext>`, served by a custom `lotion-asset:` protocol that resolves hashes only, never paths.
 
 ## Write path (single source of truth)
 
-All mutations are **commands** (`src/shared/commands/*.ts`), e.g. `block.insert`, `block.updateText`, `block.move`, `prop.set`, `page.trash`.
+All mutations are **commands** (Rust enum `Command` in `lotion-core`, mirrored as TypeScript types generated from it), e.g. `block.insert`, `block.updateText`, `block.move`, `prop.set`, `page.trash`.
 
-1. Renderer computes a command from a ProseMirror transaction (mapping in `src/renderer/editor/pm-to-commands.ts`).
-2. DB process applies it inside one SQLite transaction: rows, FTS rows, `change_log` row, `undo` entry.
-3. DB process publishes `changed {seq, pageIds, blockIds}`; every subscribed renderer reconciles. The originating renderer ignores its own echo by `clientOpId`.
+1. The UI computes a command from a ProseMirror transaction.
+2. The DB worker applies it inside one SQLite transaction: rows, FTS rows, `change_log` row, `undo` entry, computed values.
+3. The worker emits `changed {seq, pageIds, blockIds}`; every window reconciles and ignores its own echo by `clientOpId`.
 
-Text typing is coalesced in the renderer (300 ms idle or 1 s max) into one `block.updateText` per block, which bounds data loss to 1 s (AC-ED-001).
+Typing is coalesced in the UI (300 ms idle or 1 s max) into one `block.updateText` per block, bounding data loss to 1 s (AC-ED-001).
 
 ## Read path
 
 - `page.load(pageId)` returns the block tree for visible depth plus collapsed counts; large pages stream in chunks of 500 blocks.
 - `db.query(viewId, window)` compiles filters, sorts, groups and calculations to SQL over `prop_value`, `prop_option_value`, `relation_edge` and `computed_value` (see 03) and returns a window of rows, group headers, totals and calculation results.
-- Live queries: the DB process keeps, per subscription, the set of tables/properties a query depends on; a change touching them triggers re-query (coarse but correct; refined later if budgets require).
+- Live queries: per subscription, the worker keeps the tables/properties a query depends on; a change touching them triggers a re-query.
 
 ## Computed values engine (databases)
 
-Lives in the DB process (`src/db/compute/`): formula parser/type-checker/compiler (`formula/`), rollup aggregators (`rollup.ts`), dependency graph (`graph.ts`), and the dirty-set propagator (`propagate.ts`). It runs synchronously inside the command's transaction, so a renderer never sees a row whose formulas are stale. Views read `computed_value` like any other column; the filter compiler treats formula/rollup properties by their result type.
+In `lotion-core` (`src/compute/`): formula parser, type checker and compiler (06-FORMULA), rollup aggregators, dependency graph, dirty-set propagator. It runs synchronously inside the command's transaction, so the UI never sees a stale formula. Views read `computed_value` like any other column.
 
 ## Undo
 
-One undo stack per page, owned by the **DB process**, not ProseMirror. Each command stores its inverse. The renderer's PM history plugin is disabled; Ctrl+Z sends `undo(pageId)`. Typing bursts are grouped by `groupId` (500 ms). This removes the "two unrelated undo stacks" defect found in the Lana review.
+One undo stack per page, owned by the DB worker, not ProseMirror. Each command stores its inverse; Ctrl+Z sends `undo(pageId)`; typing bursts grouped by `groupId` (500 ms).
 
-## Module layout
+## Repository layout
 
 ```
-src/
-  main/           app lifecycle, windows, menus, protocol, backup, updater(off)
-  preload/        typed bridge
-  db/             utility process entry, migrations, commands, queries, fts
-  renderer/       app shell, sidebar, editor, database views, search
-  shared/         command & query types (zod), keymap, ids, fractional index
-tests/
-  unit/  e2e/  perf/  fixtures/
-scripts/          check-ids, gen-dataset, perf-report
+Cargo.toml              workspace
+crates/
+  lotion-core/          schema + migrations, commands, queries, FTS, compute, undo, backup
+  lotion-app/           Tauri shell (T0-R3)
+  lotion-perf/          dataset generator + perf harness (T0-R6)
+ui/                     webview UI: shell, sidebar, editor, database views, keymap (T0-R3)
+docs/                   charter, spec, architecture, data model, plan, quality, formula, decisions
+scripts/check-ids.ts    traceability checker (kept)
+src/, tests/, scripts/  Electron scaffold, removed in T0-R8
 ```
 
 ## Failure handling
 
-- DB process crash → main restarts it once, renderer shows a non-blocking banner and replays unacknowledged commands (each has `clientOpId`, idempotent).
+- DB worker panic → restart once, non-blocking banner, replay of unacknowledged commands.
 - Startup runs `PRAGMA quick_check`; on failure offers restore from the latest automatic backup (daily, 7 kept).
+- A workspace whose `user_version` is newer than the build is refused, never opened read-write.
 - Migrations run in a transaction with `foreign_keys=OFF` + `PRAGMA foreign_key_check` before commit; a pre-migration backup is always taken.
+
+## Record: Electron scaffold (Phase 0, superseded)
+
+Electron 45 main process, sandboxed renderer with a preload bridge, `better-sqlite3` in a `utilityProcess` reached by a per-document `MessagePort`, zod-validated commands, electron-builder NSIS + `.deb` (LOG-0003…0012). Lessons carried over: no session access before `ready`, CSP checks must go through the page, and E2E must never open external URLs on Linux.

@@ -2,7 +2,14 @@
 
 Updated at every stopping point so work can resume cold.
 
-## Current — CP-008 — 2026-11-20
+## Current — CP-009 — 2026-11-20
+
+- **State:** ADR-019 (Tauri 2 + rusqlite) accepted; Phase 0R planned in 04 (T0-R1…T0-R8); 02-ARCHITECTURE rewritten. T0-R1 done; T0-R2 `lotion-core` crate (schema v1 generated from 03 and tested against it, ping, UUIDv7, FTS5 Arabic) with CI job `rust`.
+- **Next task:** T0-R3 Tauri 2 shell + launch E2E.
+- **Open owner decisions:** license (MIT or AGPL-3.0); code-signing certificate (ADR-017).
+- **Resume:** README → 00-CHARTER → DECISIONS ADR-018/019 → 04 Phase 0R → LOG last entry. Before every push: `cargo fmt --all --check && cargo clippy --all-targets --locked -- -D warnings && cargo test --locked`, plus `pnpm install --frozen-lockfile && pnpm verify && pnpm perf --smoke` until T0-R8.
+
+## Previous — CP-008 — 2026-11-20
 
 - **State:** direction changed (ADR-018): Notion's interface and shortcuts, open source, local, Rust. Charter, README, DECISIONS, 02 and 04 updated. Electron scaffold T0-01…T0-08 remains on main as a reference; spike numbers carry over.
 - **Next task:** T0-R1 re-plan Phase 0 onto Rust, after the owner confirms the framework (Tauri 2 proposed) and the license (MIT or AGPL-3.0).
