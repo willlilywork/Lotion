@@ -7,6 +7,8 @@
 - Review is **risk-tiered**: tasks marked `R` (security boundary, data loss, migrations, packaging) get a second review pass (a separate reviewer session) before `DONE`; others are self-verified by CI. No single gate blocks the whole plan.
 - Databases are the product's reason to exist, so the database engine (Phase 3) starts right after storage (G1), in parallel with the editor, and its scale is proven in Phase 0 (T0-09) before anything is frozen.
 
+> **2026-11-20 (ADR-018):** the stack moves to Rust (Tauri 2 proposed). Next task is **T0-R1: re-plan Phase 0 onto Rust** (Cargo workspace, CI matrix, Tauri shell, rusqlite DB host, packaging as `.exe` + `.deb`), keeping spike budgets and results. T0-09 and the rest of T0-10 run on the Rust core once T0-R1 is accepted. Rows below describe the Electron scaffold as built.
+
 ## Phase 0 — Foundations (gate G0: CI green, packaging proven)
 
 | ID | Task | Paths | Verify | Size |

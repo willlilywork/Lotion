@@ -2,7 +2,7 @@
 
 Format: `ADR-NNN — title — status — date`. Context, decision, consequences. Lessons from the Lana design review (2026-11-17) are cited where they shaped a decision.
 
-## ADR-001 — Clean-room, independent identity — Accepted — 2026-11-19
+## ADR-001 — Clean-room, independent identity — Superseded by ADR-018 — 2026-11-19
 Context: hosted editors' terms forbid reverse engineering and use of the service to build a competing product. Decision: 00-CHARTER clean-room policy; no visual-parity goal; behavior specified from general conventions and public docs. Consequence: no screenshot "evidence packs"; acceptance oracles are our own.
 
 ## ADR-002 — Block tree with fractional ordering — Accepted — 2026-11-19
@@ -23,7 +23,7 @@ Context: Lana's single lock gated 200+ tasks and required review on every task. 
 ## ADR-007 — Measure scale before freezing schema — Accepted — 2026-11-19
 Context: Lana had no evidence beyond 120 rows. Decision: T0-08 spike at 1M blocks before G1. Consequence: schema in 03 is a draft until T0-08 numbers are logged.
 
-## ADR-008 — Stack — Proposed — 2026-11-19
+## ADR-008 — Stack — Superseded by ADR-018 — 2026-11-19
 Electron (exact version pinned at T0-01 to the current stable), React 19, ProseMirror, better-sqlite3, Vite, Vitest, Playwright, electron-builder, pnpm. Accepted when T0-03…T0-05 are green.
 
 ## ADR-009 — Three-level text direction — Accepted — 2026-11-19
@@ -55,3 +55,6 @@ electron-builder 26.18 produces NSIS (Windows, per-user, one-click) and deb (Ubu
 
 ## ADR-014a — TypeScript 6.0.3 — Accepted — 2026-11-19
 Amends ADR-014. typescript-eslint 8.73 peers `typescript <6.1.0`, so 6.0.x is inside its range. Lint, typecheck and tests pass on 6.0.3; adopted on main and Dependabot PR #1 closed as superseded. Stay below 6.1 until typescript-eslint widens its peer range.
+
+## ADR-018 — Notion's interface and shortcuts; open source; local; Rust — Accepted (framework and license pending owner) — 2026-11-20
+Context: the owner set the product's position: "Lotion is to Notion what PhotoCraft is to Photoshop", and wants a copy of Notion's interface and keyboard shortcuts. The difference: Lotion is open source, runs locally and is built in Rust. Decision: (1) interface and shortcut parity with Notion is a goal, governed by the parity rules in 00-CHARTER (no reverse engineering, no copied assets, no Notion name or logo); (2) the core (storage, block tree, database engine, formulas, computed values, backup) is Rust; (3) the repository becomes open source. Proposed, pending owner: **Tauri 2** (Rust core, system webview UI), because the webview gives mature Arabic shaping, bidi and IME (ADR-009), which native Rust GUI toolkits do not yet match; license **MIT** or **AGPL-3.0**. Consequences: ADR-001 and ADR-008 superseded; the Electron/TypeScript scaffold (T0-03…T0-05) is replaced in a re-planned Phase 0; schema (03), formula language (06), budgets (05), CI policy and spike results (LOG-0010…0012) carry over; LICENSE and `package.json` change once the license is chosen.

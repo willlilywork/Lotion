@@ -2,7 +2,14 @@
 
 Updated at every stopping point so work can resume cold.
 
-## Current — CP-007 — 2026-11-19
+## Current — CP-008 — 2026-11-20
+
+- **State:** direction changed (ADR-018): Notion's interface and shortcuts, open source, local, Rust. Charter, README, DECISIONS, 02 and 04 updated. Electron scaffold T0-01…T0-08 remains on main as a reference; spike numbers carry over.
+- **Next task:** T0-R1 re-plan Phase 0 onto Rust, after the owner confirms the framework (Tauri 2 proposed) and the license (MIT or AGPL-3.0).
+- **Open owner decisions:** framework; license; repo visibility (moot once open source); code-signing certificate (ADR-017).
+- **Resume:** README → 00-CHARTER → DECISIONS ADR-018 → 04-BUILD-PLAN note → LOG last entry. Before every push: `pnpm install --frozen-lockfile && pnpm verify && pnpm perf --smoke` (until the Rust toolchain replaces it).
+
+## Previous — CP-007 — 2026-11-19
 
 - **State:** T0-01 DONE; T0-02…T0-07 green on Windows + Ubuntu, R tasks awaiting second review. TypeScript 6.0.3 (ADR-014a).
 - **Done since:** T0-08 Spike A (LOG-0011): schema meets budgets at 1M blocks. T0-10 partial (LOG-0012): VACUUM INTO 3.6 s; remaining: ZIP + manifest, cross-OS CI round-trip, canonical dump equality.

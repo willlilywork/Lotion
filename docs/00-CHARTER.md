@@ -2,30 +2,30 @@
 
 ## Purpose
 
+**Lotion is to Notion what PhotoCraft is to Photoshop** (owner, 2026-11-20; ADR-018): it reproduces Notion's interface and keyboard shortcuts so a Notion user is at home immediately. The differences are that Lotion is **open source**, **runs locally** (no account, no cloud, no telemetry) and is **built in Rust**.
+
 A personal, offline workspace whose reason to exist is an **advanced database layer** — relations, rollups, formulas, many views over the same data, linked views and templates — of the kind most productivity apps (including local-first ones) do not offer, combined with a block editor and a **portable full backup** (`DataBackup.lotion`) that moves the entire workspace to another machine.
 
 ## Users
 
 One person on one machine (Windows 11 or Ubuntu 22.04+/Debian 12+). Arabic and English content, mixed in the same page.
 
-## Clean-room policy (binding)
+## Interface parity and independence (binding; replaces the clean-room policy of ADR-001)
 
-Lotion is built from general, publicly known editor conventions and our own design. It is not a copy of any product.
+- **Goal:** the layout, interactions and keyboard shortcuts match Notion's, so muscle memory transfers (sidebar, page header, slash menu, block handles, database views, command palette, shortcuts).
+- **Allowed sources:** Notion's public help center and published shortcut lists, public product pages and videos, and using the product as an ordinary user; general knowledge of block editors and databases; open-source libraries under compatible licenses.
+- **Forbidden:** decompiling, de-minifying or inspecting the network traffic, bundles or storage of Notion or any proprietary app; copying their code, icons, illustrations, fonts, product copy, templates or screenshots into the repository; the name "Notion", its logo, or anything implying affiliation in the UI, installer or package metadata.
+- **Own identity:** name and logo are Lotion's. Fonts are system or OFL-licensed (e.g. Inter, IBM Plex Sans Arabic); icons from an open set (e.g. Lucide, ISC). Layout and colors may be close to Notion's; artwork is our own.
+- **Interoperability:** importing Markdown/CSV/HTML exports the user already owns is allowed.
 
-- **Allowed sources:** public help-center articles and public documentation describing *what* a feature does; general knowledge of block editors, outliners and databases; open-source libraries under compatible licenses.
-- **Forbidden:** decompiling, de-minifying, or inspecting the network traffic, bundles, or storage of any proprietary app; using any proprietary service or its API to derive behavior for this project; copying code, icons, illustrations, fonts, color palettes, product copy, templates, or screenshots from any proprietary product; using any third-party product name or logo in the UI, the installer, or package metadata.
-- **Visual identity:** our own. Default fonts are system fonts or OFL-licensed fonts (e.g. Inter, IBM Plex Sans Arabic). Icons from an open set (e.g. Lucide, ISC).
-- **Repository hygiene:** no third-party screenshots or captured data are committed. Reference notes cite public URLs only.
-- **Interoperability:** import of Markdown/CSV/HTML exports the user already owns is allowed (format interop, not behavior cloning).
-
-This policy is a guardrail, not legal advice. Anything that would be distributed beyond personal use needs counsel review first.
+This is a guardrail, not legal advice. Before the first public release, have the parity rules reviewed by counsel.
 
 ## Product principles
 
 1. **Local and durable.** Every keystroke is persisted within 1 s; crash loses at most the last 1 s; one-file backup.
 2. **Fast at real size.** Budgets in 05-QUALITY are measured at 50k pages / 1M blocks.
 3. **Bidirectional text is first-class.** Each block resolves its own direction; Arabic shaping, IME and AltGr work everywhere text is typed.
-4. **Keyboard-complete.** Every action reachable without a mouse, with no shortcut collisions per OS.
+4. **Keyboard-complete, Notion shortcuts.** Every action reachable without a mouse, using Notion's published shortcuts (Ctrl on Windows/Linux where Notion uses Cmd), with no collisions per OS.
 5. **Small verified steps.** Each task ends green on CI on Windows and Ubuntu with a recorded log entry.
 
 ## In scope for 0.1 ("daily driver")

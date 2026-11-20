@@ -1,5 +1,7 @@
 # 02 — Architecture
 
+> **Superseded in part (ADR-018, 2026-11-20):** the core moves to Rust and the shell to Tauri 2 (proposed). This file is rewritten in T0-R1; the table below records the Electron scaffold as built.
+
 ## Stack (pinned in DECISIONS)
 
 | Layer | Choice | Why |

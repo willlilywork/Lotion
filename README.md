@@ -1,14 +1,14 @@
 # Lotion
 
-Lotion is a local-first, offline desktop workspace for personal use, built around advanced databases (relations, rollups, formulas, six view types, linked views, templates) plus a block editor and a portable full backup (`DataBackup.lotion`) that moves everything to another machine. Data lives in one SQLite file on the user's machine. No accounts, no cloud, no telemetry.
+Lotion is an open-source, local-first, offline desktop workspace with the interface and keyboard shortcuts of Notion, written in Rust. Lotion is to Notion what PhotoCraft is to Photoshop: the same way of working, but open source, on your own machine, with no account and no cloud (direction set in ADR-018). It is built around advanced databases (relations, rollups, formulas, six view types, linked views, templates) plus a block editor and a portable full backup (`DataBackup.lotion`) that moves everything to another machine. Data lives in one SQLite file on the user's machine. No accounts, no cloud, no telemetry.
 
 Targets: Windows (`.exe`, NSIS installer) and Debian/Ubuntu (`.deb`).
 
 ## Status
 
-Planning (Phase 0). No application code yet. Start with:
+Phase 0 (foundations). The current scaffold (Electron + TypeScript, T0-01…T0-08) proved CI, packaging and the SQLite schema at 1M blocks; it is being re-planned onto Rust per ADR-018. Pending owner decisions: application framework (Tauri 2 proposed) and open-source license (MIT or AGPL-3.0); until then [LICENSE](LICENSE) stays all-rights-reserved. Start with:
 
-1. [docs/00-CHARTER.md](docs/00-CHARTER.md): scope, clean-room rules, non-goals
+1. [docs/00-CHARTER.md](docs/00-CHARTER.md): purpose, interface-parity rules, non-goals
 2. [docs/01-PRODUCT-SPEC.md](docs/01-PRODUCT-SPEC.md): what the 0.1 product does, with acceptance IDs
 3. [docs/02-ARCHITECTURE.md](docs/02-ARCHITECTURE.md): processes, modules, IPC
 4. [docs/03-DATA-MODEL.md](docs/03-DATA-MODEL.md): schema, ordering, undo, change log
