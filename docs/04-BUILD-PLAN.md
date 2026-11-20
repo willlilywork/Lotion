@@ -19,7 +19,7 @@ Phase 0 below was built on Electron + TypeScript and proved CI, packaging, the s
 | T0-R4 | Core runs off the UI thread: one DB worker thread owns the connection, commands over a channel, typed (serde) command/response enum with validation | `crates/lotion-core/src/host.rs` | unit + e2e "db ping" | M R |
 | T0-R5 | Packaging with the Tauri bundler: NSIS `.exe` + `.deb`; CI installs, launches (smoke reaches SQLite), uninstalls | `crates/lotion-app/tauri.conf.json`, `.github/workflows/package.yml` | package job green | M R |
 | T0-R6 | Port dataset generator + perf harness to Rust (`lotion-perf` binary, smoke/full); re-record Spike A numbers | `crates/lotion-perf/*` | `cargo run -p lotion-perf -- --smoke` | M — DONE (LOG-0019) |
-| T0-R7 | Spike B on Rust (was T0-09): computed values at 10k rows, dirty-set recompute of 1,000 dependents | `crates/lotion-perf/src/db_engine.rs` | P-DBVIEW, P-RECOMP | M |
+| T0-R7 | Spike B on Rust (was T0-09): computed values at 10k rows, dirty-set recompute of 1,000 dependents | `crates/lotion-perf/src/db_engine.rs` | P-DBVIEW, P-RECOMP | M — DONE (LOG-0020) |
 | T0-R8 | Spike C on Rust (rest of T0-10): ZIP + manifest backup/restore, Windows→Ubuntu round-trip in CI, canonical dump equality; then remove the Electron scaffold and pnpm toolchain except `check-ids` | `crates/lotion-core/src/backup.rs`, CI | P-BACKUP, P-RESTORE | M R |
 
 ## Phase 0 — Foundations on Electron (superseded by Phase 0R; kept as record)

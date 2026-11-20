@@ -6,6 +6,7 @@
 //! `--gen <out.sqlite> [--seed N]` only writes a dataset.
 
 mod dataset;
+mod db_engine;
 
 use rusqlite::{Connection, OpenFlags, params};
 use std::path::{Path, PathBuf};
@@ -228,6 +229,82 @@ fn run_probes(file: &Path, tmp: &Path, smoke: bool) -> Res<usize> {
             eprintln!("probe returned nothing: {}", p.id);
             failed += 1;
         }
+    }
+    failed += spike_b(&ro, &rw, smoke)?;
+    Ok(failed)
+}
+
+/// Prints one result line; returns 1 when the probe failed.
+fn report(id: &str, budget_ms: Option<f64>, mut xs: Vec<f64>, out: usize, smoke: bool) -> usize {
+    xs.sort_by(f64::total_cmp);
+    let (p50, max) = (xs[xs.len() / 2], xs[xs.len() - 1]);
+    let over = !smoke && budget_ms.is_some_and(|b| p50 > b);
+    let budget = budget_ms
+        .map(|b| format!(" (budget {b})"))
+        .unwrap_or_default();
+    println!(
+        "{} {id}: p50 {p50:.1} ms, max {max:.1} ms{budget} -> {out}",
+        if over { "OVER" } else { "ok  " }
+    );
+    if smoke && out == 0 {
+        eprintln!("probe returned nothing: {id}");
+    }
+    usize::from(over || (smoke && out == 0))
+}
+
+/// T0-R7 Spike B: computed values (3 relations, 3 rollups, 5 formulas) on a database of
+/// the dataset, the P-DBVIEW query and P-RECOMP dirty-set recompute, then verify-computed.
+fn spike_b(ro: &Connection, rw: &Connection, smoke: bool) -> Res<usize> {
+    let t = Instant::now();
+    let s = db_engine::setup(rw)?;
+    println!(
+        "spike B setup: {} computed values materialized in {:.0} ms; hub edit feeds {}",
+        s.materialized,
+        t.elapsed().as_secs_f64() * 1000.0,
+        s.hub_dependents
+    );
+    let reps = if smoke { 3 } else { 15 };
+    let mut failed = 0;
+    s.view(ro)?;
+    let mut xs = Vec::new();
+    let mut out = 0;
+    for _ in 0..reps {
+        let t = Instant::now();
+        out = s.view(ro)?;
+        xs.push(t.elapsed().as_secs_f64() * 1000.0);
+    }
+    failed += report(
+        "P-DBVIEW (3 relations, 3 rollups, 5 formulas; nested filter + group + 2 sorts; first 50 with cells)",
+        Some(150.0),
+        xs,
+        out,
+        smoke,
+    );
+    let mut xs = Vec::new();
+    for i in 0..=reps {
+        let t = Instant::now();
+        out = s
+            .engine
+            .edit_number(rw, &s.hub, &s.s_amount, 100.0 + i as f64)?;
+        if i > 0 {
+            xs.push(t.elapsed().as_secs_f64() * 1000.0); // first edit is the warm-up
+        }
+    }
+    failed += report(
+        "P-RECOMP (one cell -> dependents across 2 databases)",
+        Some(50.0),
+        xs,
+        out,
+        smoke,
+    );
+    if out < 1000 {
+        eprintln!("P-RECOMP touched {out} values, expected >= 1000");
+        failed += 1;
+    }
+    if smoke {
+        let bad = s.engine.verify(rw)?;
+        println!("verify-computed: {bad} mismatches");
+        failed += usize::from(bad > 0);
     }
     Ok(failed)
 }

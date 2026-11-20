@@ -2,7 +2,14 @@
 
 Updated at every stopping point so work can resume cold.
 
-## Current — CP-012 — 2026-11-20
+## Current — CP-013 — 2026-11-20
+
+- **State:** Phase 0R: T0-R1, T0-R2, T0-R4, T0-R5, T0-R6, T0-R7 done (Spike B: P-DBVIEW 63 ms, P-RECOMP 27 ms, LOG-0020). T0-R3 done except WebDriver E2E. Remaining for G0: T0-R3 E2E, T0-R8.
+- **Next task:** T0-R8 Spike C (ZIP + manifest backup/restore, Windows→Ubuntu CI round-trip, canonical dump equality), then remove the Electron scaffold; T0-R3 E2E via tauri-driver.
+- **Open owner decisions:** license (MIT or AGPL-3.0); code-signing certificate (ADR-017).
+- **Resume:** as CP-012.
+
+## Previous — CP-012 — 2026-11-20
 
 - **State:** Phase 0R: T0-R1, T0-R2, T0-R4, T0-R5, T0-R6 done. T0-R3 done except WebDriver E2E. Spike A re-recorded on Rust (LOG-0019): all budgets met.
 - **Next task:** T0-R7 Spike B (computed values at 10k rows, dirty-set recompute of 1,000 dependents) in `crates/lotion-perf/src/db_engine.rs`; then T0-R3 E2E; T0-R8 Spike C + Electron removal.
