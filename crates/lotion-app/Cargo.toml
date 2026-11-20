@@ -1,0 +1,18 @@
+[package]
+name = "lotion-app"
+description = "Lotion desktop shell (Tauri 2)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+lotion-core = { path = "../lotion-core" }
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }

@@ -28,9 +28,32 @@ jobs:
           persist-credentials: false
       - name: Toolchain from rust-toolchain.toml
         run: rustup show active-toolchain || rustup toolchain install
+      - name: Webview build deps (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev xvfb
       - run: cargo fmt --all --check
       - run: cargo clippy --all-targets --locked -- -D warnings
       - run: cargo test --locked
+      - run: cargo build -p lotion-app --locked
+      - name: Tauri launch smoke (Linux)
+        if: runner.os == 'Linux'
+        env:
+          LOTION_SMOKE: '1'
+        run: |
+          timeout 90 dbus-run-session -- xvfb-run --auto-servernum target/debug/lotion-app | tee tauri-smoke.log
+          grep -q 'LOTION_SMOKE ready db=ok' tauri-smoke.log
+      - name: Tauri launch smoke (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          LOTION_SMOKE: '1'
+        run: |
+          $p = Start-Process target\debug\lotion-app.exe -NoNewWindow -PassThru -RedirectStandardOutput tauri-smoke.log
+          if (-not $p.WaitForExit(90000)) { $p.Kill(); throw 'lotion-app did not quit' }
+          Get-Content tauri-smoke.log
+          if (-not (Select-String -Quiet 'LOTION_SMOKE ready db=ok' tauri-smoke.log)) { throw 'smoke failed' }
 
   verify:
     name: verify (${{ matrix.os }})
