@@ -1,31 +1,17 @@
 //! Lotion desktop shell (T0-R3, ADR-019).
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use lotion_core::Workspace;
-use serde::Serialize;
-use std::sync::Mutex;
+use lotion_core::host::{Command, DbHost, HostError, Location, Response};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
-/// Open workspace. T0-R4 moves it to a dedicated DB worker thread.
-struct Db(Mutex<Workspace>);
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct PongDto {
-    sqlite_version: String,
-    schema_version: i64,
-}
-
+/// The single entry point for the UI (ADR-019). The command is validated by serde;
+/// the blocking wait runs off the UI thread.
 #[tauri::command]
-fn ping(db: tauri::State<'_, Db>) -> Result<PongDto, String> {
-    let ws =
-        db.0.lock()
-            .map_err(|_| "workspace lock poisoned".to_string())?;
-    let p = ws.ping().map_err(|e| e.to_string())?;
-    Ok(PongDto {
-        sqlite_version: p.sqlite_version,
-        schema_version: p.schema_version,
-    })
+async fn request(host: tauri::State<'_, DbHost>, cmd: Command) -> Result<Response, HostError> {
+    let host = host.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || host.request(cmd))
+        .await
+        .map_err(|_| HostError::WorkerGone)?
 }
 
 /// Called by the UI in smoke mode (`LOTION_SMOKE=1`): prints the result and quits.
@@ -51,8 +37,8 @@ fn main() {
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
-            let ws = Workspace::open(dir.join("workspace.lotiondb"))?;
-            app.manage(Db(Mutex::new(ws)));
+            let host = DbHost::spawn(Location::File(dir.join("workspace.lotiondb")))?;
+            app.manage(host);
             let smoke = std::env::var_os("LOTION_SMOKE").is_some();
             let url = if smoke {
                 "index.html?smoke=1"
@@ -67,7 +53,7 @@ fn main() {
                 .build()?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![ping, smoke_report])
+        .invoke_handler(tauri::generate_handler![request, smoke_report])
         .run(tauri::generate_context!())
         .expect("error while running Lotion");
 }

@@ -1,6 +1,8 @@
 //! Lotion core: one SQLite workspace file, opened with the schema from
 //! `docs/03-DATA-MODEL.md` (ADR-018: the core is Rust).
 
+pub mod host;
+
 use rusqlite::Connection;
 use std::path::Path;
 
@@ -16,12 +18,15 @@ pub enum Error {
     Sqlite(#[from] rusqlite::Error),
     #[error("workspace schema version {found} is newer than this build ({supported})")]
     TooNew { found: i64, supported: i64 },
+    #[error("DB worker thread stopped before opening the workspace")]
+    WorkerFailed,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Answer to the `ping` command: proves the core reached SQLite.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Pong {
     pub sqlite_version: String,
     pub schema_version: i64,

@@ -4,7 +4,7 @@ const { invoke } = window.__TAURI__.core;
 const smoke = new URLSearchParams(location.search).has('smoke');
 const status = document.getElementById('db-status');
 
-invoke('ping')
+invoke('request', { cmd: { cmd: 'ping' } })
   .then((p) => {
     status.textContent = `SQLite ${p.sqliteVersion} · schema v${p.schemaVersion}`;
     if (smoke) return invoke('smoke_report', { dbOk: p.schemaVersion >= 1 });

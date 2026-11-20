@@ -2,7 +2,14 @@
 
 Updated at every stopping point so work can resume cold.
 
-## Current — CP-009 — 2026-11-20
+## Current — CP-010 — 2026-11-20
+
+- **State:** Phase 0R: T0-R1, T0-R2 done; T0-R3 Tauri shell done except WebDriver E2E (smoke green in CI on Windows + Ubuntu, e64c12b); T0-R4 DB worker + single typed `request` command done locally.
+- **Next task:** T0-R5 packaging with the Tauri bundler (NSIS + `.deb`, install/launch/uninstall in CI), then T0-R3 E2E, T0-R6 perf port.
+- **Open owner decisions:** license (MIT or AGPL-3.0); code-signing certificate (ADR-017).
+- **Resume:** as CP-009. Sandbox note: Rust lives in `/workspace/.rust` (set RUSTUP_HOME, CARGO_HOME); system packages (gcc, webkit2gtk dev, xvfb) must be reinstalled with apt in a fresh sandbox.
+
+## Previous — CP-009 — 2026-11-20
 
 - **State:** ADR-019 (Tauri 2 + rusqlite) accepted; Phase 0R planned in 04 (T0-R1…T0-R8); 02-ARCHITECTURE rewritten. T0-R1 done; T0-R2 `lotion-core` crate (schema v1 generated from 03 and tested against it, ping, UUIDv7, FTS5 Arabic) with CI job `rust`.
 - **Next task:** T0-R3 Tauri 2 shell + launch E2E.

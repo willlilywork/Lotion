@@ -3,5 +3,5 @@
   "identifier": "main",
   "description": "The main window may call only Lotion's own commands.",
   "windows": ["main"],
-  "permissions": ["allow-ping", "allow-smoke-report"]
+  "permissions": ["allow-request", "allow-smoke-report"]
 }
