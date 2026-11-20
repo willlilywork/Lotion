@@ -20,11 +20,13 @@
     "e2e": "playwright test",
     "check-ids": "node scripts/check-ids.ts",
     "package": "pnpm build && electron-builder --publish never",
-    "perf": "node scripts/perf.ts"
+    "perf": "node scripts/perf.ts",
+    "tauri": "tauri"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.65.1",
+    "@tauri-apps/cli": "2.12.6",
     "@types/better-sqlite3": "9.6.0",
     "@types/node": "^22.20.5",
     "electron": "45.4.1",
