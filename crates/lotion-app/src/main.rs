@@ -18,7 +18,10 @@ async fn request(host: tauri::State<'_, DbHost>, cmd: Command) -> Result<Respons
 #[tauri::command]
 fn smoke_report(app: tauri::AppHandle, db_ok: bool) {
     if std::env::var_os("LOTION_SMOKE").is_some() {
-        let line = format!("LOTION_SMOKE ready db={}", if db_ok { "ok" } else { "fail" });
+        let line = format!(
+            "LOTION_SMOKE ready db={}",
+            if db_ok { "ok" } else { "fail" }
+        );
         println!("{line}");
         // Release builds on Windows have no console; CI reads this file instead.
         if let Some(out) = std::env::var_os("LOTION_SMOKE_OUT") {
