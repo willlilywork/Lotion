@@ -2,7 +2,14 @@
 
 Updated at every stopping point so work can resume cold.
 
-## Current — CP-010 — 2026-11-20
+## Current — CP-011 — 2026-11-20
+
+- **State:** Phase 0R: T0-R1, T0-R2, T0-R4, T0-R5 done (CI 44830637760 + Package 44830637869 green on Windows + Ubuntu at eabbd8b). T0-R3 done except WebDriver E2E via tauri-driver.
+- **Next task:** T0-R6 port dataset generator + perf harness to Rust (`lotion-perf`), then T0-R3 E2E, T0-R7 Spike B, T0-R8 Spike C + Electron removal.
+- **Open owner decisions:** license (MIT or AGPL-3.0); code-signing certificate (ADR-017).
+- **Resume:** as CP-010.
+
+## Previous — CP-010 — 2026-11-20
 
 - **State:** Phase 0R: T0-R1, T0-R2 done; T0-R3 Tauri shell done except WebDriver E2E (smoke green in CI on Windows + Ubuntu, e64c12b); T0-R4 DB worker + single typed `request` command done locally.
 - **Next task:** T0-R5 packaging with the Tauri bundler (NSIS + `.deb`, install/launch/uninstall in CI), then T0-R3 E2E, T0-R6 perf port.
