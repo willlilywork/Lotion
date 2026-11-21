@@ -1,9 +1,0 @@
-pnpm-lock.yaml
-docs/
-*.md
-out/
-playwright-report/
-test-results/
-dist/
-target/
-crates/lotion-app/gen/
